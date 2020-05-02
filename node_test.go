@@ -106,30 +106,3 @@ func TestIsNeutral(t *testing.T) {
 	}
 }
 
-func TestNodeYaml(t *testing.T) {
-	yml := `
-%YAML 1.2
----
-a: 
-  aa:
-    bb:
-      - true
-      - 0
-      - 1.1
-      - !!int 2
-      - 3s
-      - 2015-01-01
-      - !!timestamp "2015-01-01"
-      - ""
-      - plip
-      - !!str "plop"
-      - !!string "plop"
-      - ~
-      - null
-      - !expr "*.*"
-b: c
-`
-	var ast ast
-	ast.Read(yml)
-//	yamlToNode(ast.V)
-}

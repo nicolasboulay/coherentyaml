@@ -2,27 +2,26 @@ package main
 
 import (
 	"fmt"
-	"github.com/goccy/go-yaml"
+//	"github.com/goccy/go-yaml"
 	//goyaml3 "gopkg.in/yaml.v3"
-	"log"
+//	"log"
+	"flag"
+	"io/ioutil"
+	"os"
 )
 
 func main() {
-	yml := `---
-foo: 1
-bar: c
-A: 2
-B: d
-`
-	var v struct {
-		A int    `yaml:"foo" json:"A"`
-		B string `yaml:"bar" json:"B"`
-	}
-	if err := yaml.Unmarshal([]byte(yml), &v); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(v.A)
-	fmt.Println(v.B)
+	flag.Parse()
+	filename := flag.Args()[0]
 
-   fmt.Println("Hello, World!")
+	ymlContent, err := ioutil.ReadFile(filename)
+	if (err != nil) {
+		fmt.Fprintf(os.Stderr, "Read file error : %s", err)
+	}
+	
+	var ast Ast
+	
+	ast.Read(ymlContent)
+	
+	fmt.Println(ast)
 }
