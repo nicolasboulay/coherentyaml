@@ -27,7 +27,7 @@ a:
       - !expr "*.*"
 b: c
 `
-	var ast ast
+	var ast Ast
 	ast.Read([]byte(yml))
 //	yamlToNode(ast.V)
 }
@@ -39,7 +39,7 @@ func TestRead(t *testing.T) {
 a: 1
 b: c
 `
-	var a ast
+	var a Ast
 	a.Read([]byte(yml))
 	var v map[string]interface{}
 	v = a.V.(map[string]interface{})

@@ -11,7 +11,8 @@ type node interface {
 	GetChild() []node
 	IsCoherent() error
 	IsCoherentWith(n node) error
-	String() string 
+	String() string
+	//New(interface{}) node
 }
 
 type OR struct {
@@ -249,7 +250,7 @@ func (n *nStruct) IsCoherent() error {
 	return nil
 }
 
-func (n *nStruct) IsCoherentWith(n2 node) error {
+func (n *nStruct) IsCoherentWith(n2 node) error {//TODO ! c'est complètement faux
 	c := n.GetChild()
 	for _,k := range c {
 		err := k.IsCoherentWith(n2)
@@ -264,36 +265,86 @@ func (n *nStruct) String() string {
 	return fmt.Sprintf("%v", n.value)
 }
 
-func yamlToNode(yaml interface{}) node{
-	v := reflect.ValueOf(yaml)
-	
-	switch v.Kind() {
-	case reflect.Bool:
-		fmt.Printf("bool: %v\n", v.Bool())
-	case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
-		fmt.Printf("int: %v\n", v.Int())
-	case reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64:
-		fmt.Printf("int: %v\n", v.Uint())
-	case reflect.Float32, reflect.Float64:
-		fmt.Printf("float: %v\n", v.Float())
-	case reflect.String:
-		fmt.Printf("string: %v\n", v.String())
-	case reflect.Slice:
-		fmt.Printf("slice: len=%d, %v\n", v.Len(), v.Interface())
-	case reflect.Map:
-		fmt.Printf("map: \n");
-		iter := reflect.ValueOf(yaml).MapRange()
-		for iter.Next() {
-			k := iter.Key()
-			fmt.Printf("[%v] ", k);
-			v := iter.Value()
-			yamlToNode(v.Interface())
+type nArray struct {
+	value []node
+}
+
+func (a *nArray) GetChild() []node {
+	return a.value
+}
+
+func (a *nArray) IsCoherent() error {
+	c := a.GetChild()
+	for _,node := range c {
+		err := node.IsCoherent()
+		if (err != nil) {
+			return err
 		}
-	case reflect.Chan:
-		fmt.Printf("chan %v\n", v.Interface())
-	default:
-		fmt.Printf("\n%v\n",v)
 	}
 	return nil
 }
+
+// array is coherent with an other array
+// Array are not ordered : so an element must be coherent with an other element in the other array, symmetricaly
+// multiplicity are not defined, 
+// 
+func (a *nArray) IsCoherentWith(n2 node) error {
+	a2, ok := n2.(*nArray)
+	if !ok {
+		return fmt.Errorf("Array needed : %v vs %v", a, n2)
+	}
+	c := a.GetChild()
+	for _,k := range c {
+		c2 := a2.GetChild()
+		var err error = nil 
+		for _,k2 := range c2 {
+			err_tmp := k2.IsCoherentWith(k)
+			if (err_tmp != nil) {
+				err = err_tmp
+			}
+		}
+		if (err != nil) {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func (n *nArray) String() string {
+	return fmt.Sprintf("%v", n.value)
+}
+
+//func yamlToNode(yaml interface{}) node{
+//	v := reflect.ValueOf(yaml)
+//	
+//	switch v.Kind() {
+//	case reflect.Bool:
+//		fmt.Printf("bool: %v\n", v.Bool())
+//	case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
+//		fmt.Printf("int: %v\n", v.Int())
+//	case reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64:
+//		fmt.Printf("int: %v\n", v.Uint())
+//	case reflect.Float32, reflect.Float64:
+//		fmt.Printf("float: %v\n", v.Float())
+//	case reflect.String:
+//		fmt.Printf("string: %v\n", v.String())
+//	case reflect.Slice:
+//		fmt.Printf("slice: len=%d, %v\n", v.Len(), v.Interface())
+//	case reflect.Map:
+//		fmt.Printf("map: \n");
+//		iter := reflect.ValueOf(yaml).MapRange()
+//		for iter.Next() {
+//			k := iter.Key()
+//			fmt.Printf("[%v] ", k);
+//			v := iter.Value()
+//			yamlToNode(v.Interface())
+//		}
+//	case reflect.Chan:
+//		fmt.Printf("chan %v\n", v.Interface())
+//	default:
+//		fmt.Printf("\n%v\n",v)
+//	}
+//	return nil
+//}
 

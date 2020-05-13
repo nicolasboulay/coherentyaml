@@ -20,8 +20,6 @@ func main() {
 	}
 	
 	var ast Ast
-	
 	ast.Read(ymlContent)
-	
 	fmt.Println(ast)
 }
