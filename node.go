@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-//	"log"
+	"log"
 	"fmt"
 	"reflect"
 )
@@ -16,11 +16,15 @@ type node interface {
 }
 
 type OR struct {
-	child []node
+	child node
 }
 
 func (or *OR) GetChild() []node {
-	return or.child 
+	a, ok := or.child.(*nArray);
+	if ok {
+		return a.value
+	}	
+	return []node{or.child} 
 }
 
 func (or *OR) IsCoherent() error {
@@ -58,11 +62,15 @@ func (o *OR) String() string {
 
 
 type Coherent struct {
-	child []node
+	child node
 }
 
 func (c *Coherent) GetChild() []node {
-	return c.child 
+	a, ok := c.child.(*nArray);
+	if ok {
+		return a.value
+	}	
+	return []node{c.child} 
 }
 
 func (c *Coherent) IsCoherent() error {
@@ -96,11 +104,15 @@ func (c *Coherent) String() string {
 }
 
 type Not struct {
-	child []node
+	child node
 }
 
 func (n *Not) GetChild() []node {
-	return n.child 
+	a, ok := n.child.(*nArray);
+	if ok {
+		return a.value
+	}	
+	return []node{n.child} 
 }
 
 func (n *Not) IsCoherent() error {
@@ -119,13 +131,13 @@ func (n *Not) IsCoherent() error {
 
 func (n *Not) IsCoherentWith(o node) error {
 	
-	if (len(n.child)) != 1 {
+	if (len(n.GetChild())) != 1 {
 		return errors.New("'Not' could have only one child")
 	}
 	var err error
 	//log.Printf("%v",n.child[0])
 	//log.Printf("%v",o)
-	err = n.child[0].IsCoherentWith(o)
+	err = n.GetChild()[0].IsCoherentWith(o)
 	if (err != nil) {
 		//log.Print(nil)
 		return nil
@@ -293,18 +305,20 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 	if !ok {
 		return fmt.Errorf("Array needed : %v vs %v", a, n2)
 	}
-	c := a.GetChild()
+	c  :=  a.GetChild()
+	c2 := a2.GetChild()
 	for _,k := range c {
-		c2 := a2.GetChild()
-		var err error = nil 
+		ok := false
 		for _,k2 := range c2 {
-			err_tmp := k2.IsCoherentWith(k)
-			if (err_tmp != nil) {
-				err = err_tmp
+			err := k2.IsCoherentWith(k)
+			log.Print(err)
+			if (err == nil) {
+				ok = true
+				break
 			}
 		}
-		if (err != nil) {
-			return err
+		if (!ok) {
+			return errors.New("'Array' value should match without order")
 		}
 
 	}

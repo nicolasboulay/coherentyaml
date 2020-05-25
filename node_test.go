@@ -8,16 +8,16 @@ import (
 
 func TestNode(t *testing.T) {
 	s1 := Str("s1")
-	c:= Coherent{[]node{&s1,&StrZero}}
-	root := Coherent{[]node{&s1, &StrZero, &c}}
+	c:= Coherent{&nArray{[]node{&s1,&StrZero}}}
+	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
 	
 	err := root.IsCoherent()
 	if (err != nil) {
 		t.Errorf("Want coherency : %s", err)
 	}
 	s2 := Str("s2")
-	or:= OR{[]node{&s1,&s2}}
-	c = Coherent{[]node{&or,&StrZero}}
+	or:= OR{&nArray{[]node{&s1,&s2}}}
+	c = Coherent{&nArray{[]node{&or,&StrZero}}}
 	err = c.IsCoherent()
 	if (err != nil) {
 		t.Errorf("Want coherency : %s", err)
@@ -28,15 +28,15 @@ func TestNode(t *testing.T) {
 func TestCoherent(t *testing.T) {
 	s1 := Str("s1")
 	s2 := Str("s2")
-	c:= Coherent{[]node{&s1,&StrZero}}
-	root := Coherent{[]node{&s1, &StrZero, &c}}
-	or := OR{[]node{&s1, &s2}}
-	not := Not{[]node{&s1}}
-	root2 := Coherent{[]node{&not,&s2}}
-	root3 := Coherent{[]node{&s1,&or}}
-	root4 := Coherent{[]node{&not,&or}} // (non A) && (A || B)
+	c:= Coherent{&nArray{[]node{&s1,&StrZero}}}
+	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
+	or := OR{&nArray{[]node{&s1, &s2}}}
+	not := Not{&nArray{[]node{&s1}}}
+	root2 := Coherent{&nArray{[]node{&not,&s2}}}
+	root3 := Coherent{&nArray{[]node{&s1,&or}}}
+	root4 := Coherent{&nArray{[]node{&not,&or}}} // (non A) && (A || B)
         neutralInt := leaf{reflect.ValueOf(-1)}
-	coherentInt := Coherent{[]node{&neutralInt,&leaf{reflect.ValueOf(0)}}}
+	coherentInt := Coherent{&nArray{[]node{&neutralInt,&leaf{reflect.ValueOf(0)}}}}
 	tables := []struct{ name string; n node;}{
 		{"root",&root},
 		{"c",&c},
@@ -59,14 +59,14 @@ func TestCoherent(t *testing.T) {
 func TestNotCoherent(t *testing.T) {
 	s1 := Str("s1")
 	s2 := Str("s2")
-	c:= Coherent{[]node{&s2,&StrZero}}
-	root := Coherent{[]node{&s1, &StrZero, &c}}
-	not := Not{[]node{&s1}}
-	root2 := Coherent{[]node{&not,&s1}}
-	fakenot := Not{[]node{&s1,&s2}}
+	c:= Coherent{&nArray{[]node{&s2,&StrZero}}}
+	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
+	not := Not{&s1}
+	root2 := Coherent{&nArray{[]node{&not,&s1}}}
+	fakenot := Not{&nArray{[]node{&s1,&s2}}}
 	//root3 := Coherent{[]node{&OR{[]node{&fakenot,&s1}},&s1}}
 	intLiteral := leaf{reflect.ValueOf(3)}
-	incoherentInt := Coherent{[]node{&intLiteral,&leaf{reflect.ValueOf(2)}}}
+	incoherentInt := Coherent{&nArray{[]node{&intLiteral,&leaf{reflect.ValueOf(2)}}}}
 	tables := []struct{ name string; n node;}{
 		{"root",&root},
 		{"root2",&root2},
