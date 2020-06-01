@@ -38,7 +38,23 @@ func TestBigUglySwitch(t *testing.T) {
 	log.Print(node)
 }
 
-func TestBigUglySwitchTable(t *testing.T) { 
+func TestBigUglySwitchTable(t *testing.T) {
+	testMap :=make (map[string]interface{})
+	testMap["Coherent"] = []int{2,2}
+	testMap["OR"] = []int{1,2}
+	testMap["Not"] = 2
+	testMapNode1 := &nArray{[]node{&leaf{reflect.ValueOf(2)},&leaf{reflect.ValueOf(1)}}}
+	testMapCoherent  := &Coherent{testMapNode1}
+	testMapOR  := &OR{testMapNode1}
+	testMapNot  := &Not{&leaf{reflect.ValueOf(1)}}
+	testMapNode := &nArray{[]node{testMapCoherent,testMapOR,testMapNot}}
+
+	testStruct := struct {
+		Coherent []int
+		OR []int
+		Not int
+	} { []int{2,2}, []int{1,2}, 2,}
+	
 	tables := []struct{ dut interface{}; expected node;}{
 		{"astring",&leaf{reflect.ValueOf("astring")}},
 		{2,&leaf{reflect.ValueOf(2)}},
@@ -50,6 +66,8 @@ func TestBigUglySwitchTable(t *testing.T) {
 		{[]int{-1,3},&nArray{[]node{&leaf{reflect.ValueOf(3)},&leaf{reflect.ValueOf(2)},&leaf{reflect.ValueOf(4)}}}},
 		{[][]int{{2,3}},&nArray{[]node{&nArray{[]node{
 			&leaf{reflect.ValueOf(2)},&leaf{reflect.ValueOf(3)}}}}}},
+		{testMap, testMapNode},
+		{testStruct, testMapNode},
 	}
 
 	for _, line := range tables {
