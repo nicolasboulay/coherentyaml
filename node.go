@@ -179,7 +179,7 @@ func (s *Str) IsCoherentWith(n node) error {
 
 
 func (s *Str) String() string {
-	return fmt.Sprintf("str{%s}",*s)
+	return fmt.Sprintf("Str{%s}",*s)
 }
 
 type leaf struct {
@@ -251,6 +251,11 @@ func (n *nStruct) GetChild() []node {
 	return v
 }
 
+//todo : à complexifier par regexp  
+func (n *nStruct) get(k node) node {
+	return n.value[k]
+}
+
 func (n *nStruct) IsCoherent() error {
 	c := n.GetChild()
 	for _,node := range c {
@@ -261,20 +266,33 @@ func (n *nStruct) IsCoherent() error {
 	}
 	return nil
 }
-
+// une struct est coherent avec une autre si les champs présent sont coherent entre eux.
+// coherent doit rester commutatif, on ne peut donc pas faire un coté inclus dans l'autre
+// L'ordre des champs n'est pas important.
+// il faudrait trouver un moyen d'inclusion strict si besoin.
+// (ex: avec regexp, si plusieurs match les faire du plus particluiers au plus général, coherent: {{...},{ ..., "*": nil})
+// si une clef est absente d'un coté, ce n'est pas grave.
 func (n *nStruct) IsCoherentWith(n2 node) error {//TODO ! c'est complètement faux
-	c := n.GetChild()
-	for _,k := range c {
-		err := k.IsCoherentWith(n2)
-		if (err != nil) {
+	s2, ok := n2.(*nStruct)
+	if !ok {
+		return fmt.Errorf("Structure needed :\n %v vs\n %v", n, n2)
+	}
+	for k := range n.value {
+		v2 := s2.get(k)
+		if v2 == nil {
+			continue
+		}
+		err := v2.IsCoherentWith(n.get(k))
+		if err != nil {
 			return err
 		}
 	}
 	return nil
+	
 }
 
 func (n *nStruct) String() string {
-	return fmt.Sprintf("%v", n.value)
+	return fmt.Sprintf("nStruct{%v}", n.value)
 }
 
 type nArray struct {
@@ -310,6 +328,7 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 	for _,k := range c {
 		ok := false
 		for _,k2 := range c2 {
+			fmt.Printf("vs: %v\n    %v\n",k2,k)
 			err := k2.IsCoherentWith(k)
 			log.Print(err)
 			if (err == nil) {
@@ -318,7 +337,8 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 			}
 		}
 		if (!ok) {
-			return errors.New("'Array' value should match without order")
+			fmt.Printf("'Array' value should match without order :\n%v\n%v",a,n2)
+			return fmt.Errorf("'Array' value should match without order :\n%v\n%v",a,n2)
 		}
 
 	}
@@ -326,7 +346,7 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 }
 
 func (n *nArray) String() string {
-	return fmt.Sprintf("%v", n.value)
+	return fmt.Sprintf("[%v]", n.value)
 }
 
 //func yamlToNode(yaml interface{}) node{

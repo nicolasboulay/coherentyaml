@@ -29,7 +29,7 @@ b: c
 `
 	var ast Ast
 	ast.Read([]byte(yml))
-//	yamlToNode(ast.V)
+	ast.Interface()
 }
 
 func TestRead(t *testing.T) {

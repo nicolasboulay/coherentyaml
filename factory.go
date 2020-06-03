@@ -3,6 +3,7 @@ package main
 import (
 	"reflect"
 	"fmt"
+	//"log"
 )
 
 // le pattern d'abstract factory n'aide pas vraiment ici, car C'est vraiment le contenu exact de l'entré qui compte.
@@ -40,8 +41,7 @@ func  BigUglySwitch(in interface{}) node {
 		return &nArray{a}
 	}
 	case reflect.Map: {
-		fmt.Printf("map: \n");
-		var mapNode map[node]node
+		mapNode := make (map[node]node)
 		var returnArrayNode []node
 		
 		iter := v.MapRange()
@@ -58,12 +58,15 @@ func  BigUglySwitch(in interface{}) node {
 		return &nArray{returnArrayNode}
 	}
 	case reflect.Struct:
-		var mapNode map[node]node
+		mapNode := make(map[node]node)
 		var returnArrayNode []node
 		for i := 0; i < v.NumField(); i++ {
-			fieldName := v.Type().Field(i).Name
-			fieldValue := v.Field(i).Interface()
-			returnArrayNode = appendArrayWithKey(returnArrayNode, mapNode, fieldName, fieldValue)
+			if v.Field(i).CanInterface() {			
+				fieldName := v.Type().Field(i).Name
+				//log.Printf("^: %v %s\n",v,fieldName)
+				fieldValue := v.Field(i).Interface()
+				returnArrayNode = appendArrayWithKey(returnArrayNode, mapNode, fieldName, fieldValue)
+			}
 		}
 		if len (mapNode) != 0 {
 			returnArrayNode = append(returnArrayNode,&nStruct{mapNode})

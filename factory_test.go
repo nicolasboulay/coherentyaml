@@ -2,7 +2,7 @@ package main
 
 import (
 	"testing"
-	"log"
+	//"log"
 	"reflect"
 )
 
@@ -35,7 +35,7 @@ func TestBigUglySwitch(t *testing.T) {
 	if nil != expected.IsCoherentWith(node) {
 		t.Errorf("Want coherency in %#v :\n%#v instead of\n %#v",dut, node, expected)
 	}
-	log.Print(node)
+	//log.Print(node)
 }
 
 func TestBigUglySwitchTable(t *testing.T) {
