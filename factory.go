@@ -90,7 +90,7 @@ func appendArrayWithKey(returnArrayNode []node, mapNode map[node]node, key strin
 		returnArrayNode = append(returnArrayNode,&Not{valueNode})
 	default: {
 			keyNode := Str(key)
-			mapNode[&keyNode] = valueNode
+			mapNode[keyNode] = valueNode
 	}
 	}
 	return (returnArrayNode)

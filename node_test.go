@@ -63,14 +63,12 @@ func TestNotCoherent(t *testing.T) {
 	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
 	not := Not{&s1}
 	root2 := Coherent{&nArray{[]node{&not,&s1}}}
-	fakenot := Not{&nArray{[]node{&s1,&s2}}}
 	//root3 := Coherent{[]node{&OR{[]node{&fakenot,&s1}},&s1}}
 	intLiteral := leaf{reflect.ValueOf(3)}
 	incoherentInt := Coherent{&nArray{[]node{&intLiteral,&leaf{reflect.ValueOf(2)}}}}
 	tables := []struct{ name string; n node;}{
 		{"root",&root},
 		{"root2",&root2},
-		{"fakenot",&fakenot},
 		{"incoherentInt",&incoherentInt},
 		//{"root3",&root3}, // using isCoherent in iscoherentwith is not decided
 
@@ -106,3 +104,17 @@ func TestIsNeutral(t *testing.T) {
 	}
 }
 
+func TestNStruct(t *testing.T) {
+	m := make(map[node]node)
+	k := Str("1")
+	k1 := Str("1")
+	m[k] = k
+	//k2 := Str("2")
+	k22 := Str("2")
+	m[k22] = k22
+	n := nStruct{m}
+
+	if n.get(k1) != k1 {
+		t.Errorf("get() error %v %v %v\n", k1, n, n.get(&k))
+	}
+}

@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"log"
+	//"log"
 	"fmt"
 	"reflect"
 )
@@ -116,12 +116,9 @@ func (n *Not) GetChild() []node {
 }
 
 func (n *Not) IsCoherent() error {
-	children := n.GetChild()
-	if (len(children)) != 1 {
-		return errors.New("'Not' could have only one child")
-	}
+	//children := n.GetChild()
 	
-	err := children[0].IsCoherent() 
+	err := n.child.IsCoherent() 
 	if (err != nil) {
 		return err
 	}
@@ -131,13 +128,10 @@ func (n *Not) IsCoherent() error {
 
 func (n *Not) IsCoherentWith(o node) error {
 	
-	if (len(n.GetChild())) != 1 {
-		return errors.New("'Not' could have only one child")
-	}
 	var err error
 	//log.Printf("%v",n.child[0])
 	//log.Printf("%v",o)
-	err = n.GetChild()[0].IsCoherentWith(o)
+	err = n.child.IsCoherentWith(o)
 	if (err != nil) {
 		//log.Print(nil)
 		return nil
@@ -154,23 +148,23 @@ type Str string
 
 var StrZero Str = Str("")
 
-func (s *Str) GetChild() []node {
+func (s Str) GetChild() []node {
 	return []node{}
 } 
 
-func (s *Str) IsCoherent() error {
+func (s Str) IsCoherent() error {
 	return nil
 }
 
-func (s *Str) IsCoherentWith(n node) error {
-	s2, ok := n.(*Str);
+func (s Str) IsCoherentWith(n node) error {
+	s2, ok := n.(Str);
 	if (!ok) {
 		//case with OR/Not/Coherency/.. in between
 		return n.IsCoherentWith(s)
 	}
 	if (s2 == s) {
 		return nil
-	} else if *s == StrZero || *s2 == StrZero {
+	} else if s == StrZero || s2 == StrZero {
 		return nil
 	}
 	
@@ -178,8 +172,8 @@ func (s *Str) IsCoherentWith(n node) error {
 }
 
 
-func (s *Str) String() string {
-	return fmt.Sprintf("Str{%s}",*s)
+func (s Str) String() string {
+	return fmt.Sprintf("Str{%s}",string(s))
 }
 
 type leaf struct {
@@ -251,8 +245,9 @@ func (n *nStruct) GetChild() []node {
 	return v
 }
 
-//todo : à complexifier par regexp  
+//todo : à complexifier par regexp possible  
 func (n *nStruct) get(k node) node {
+	fmt.Printf("nStruct [%v] %v %v\n",k,n.value, n.value[k])
 	return n.value[k]
 }
 
@@ -272,21 +267,27 @@ func (n *nStruct) IsCoherent() error {
 // il faudrait trouver un moyen d'inclusion strict si besoin.
 // (ex: avec regexp, si plusieurs match les faire du plus particluiers au plus général, coherent: {{...},{ ..., "*": nil})
 // si une clef est absente d'un coté, ce n'est pas grave.
-func (n *nStruct) IsCoherentWith(n2 node) error {//TODO ! c'est complètement faux
+func (n *nStruct) IsCoherentWith(n2 node) error {
+	fmt.Printf("Structure :\n %v vs\n %v\n", n, n2)
 	s2, ok := n2.(*nStruct)
 	if !ok {
 		return fmt.Errorf("Structure needed :\n %v vs\n %v", n, n2)
 	}
-	for k := range n.value {
+	for k, element := range n.value {
+		fmt.Printf("key : %v\n",k)
 		v2 := s2.get(k)
+		fmt.Printf("s2.get : %v\n",v2)
 		if v2 == nil {
 			continue
 		}
-		err := v2.IsCoherentWith(n.get(k))
+		err := v2.IsCoherentWith(element)
+		fmt.Printf(" %v\n %v\n", v2,element)
 		if err != nil {
+			fmt.Printf("%v\n",err)
 			return err
 		}
 	}
+	fmt.Printf("struct equal\n")
 	return nil
 	
 }
@@ -328,16 +329,15 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 	for _,k := range c {
 		ok := false
 		for _,k2 := range c2 {
-			fmt.Printf("vs: %v\n    %v\n",k2,k)
+			//fmt.Printf("vs: %v\n    %v\n",k2,k)
 			err := k2.IsCoherentWith(k)
-			log.Print(err)
+			//log.Print(err)
 			if (err == nil) {
 				ok = true
 				break
 			}
 		}
 		if (!ok) {
-			fmt.Printf("'Array' value should match without order :\n%v\n%v",a,n2)
 			return fmt.Errorf("'Array' value should match without order :\n%v\n%v",a,n2)
 		}
 
