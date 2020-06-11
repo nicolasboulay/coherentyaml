@@ -247,7 +247,6 @@ func (n *nStruct) GetChild() []node {
 
 //todo : à complexifier par regexp possible  
 func (n *nStruct) get(k node) node {
-	fmt.Printf("nStruct [%v] %v %v\n",k,n.value, n.value[k])
 	return n.value[k]
 }
 
@@ -268,28 +267,23 @@ func (n *nStruct) IsCoherent() error {
 // (ex: avec regexp, si plusieurs match les faire du plus particluiers au plus général, coherent: {{...},{ ..., "*": nil})
 // si une clef est absente d'un coté, ce n'est pas grave.
 func (n *nStruct) IsCoherentWith(n2 node) error {
-	fmt.Printf("Structure :\n %v vs\n %v\n", n, n2)
+	//fmt.Printf("Structure :\n %v vs\n %v\n", n, n2)
 	s2, ok := n2.(*nStruct)
 	if !ok {
 		return fmt.Errorf("Structure needed :\n %v vs\n %v", n, n2)
 	}
 	for k, element := range n.value {
-		fmt.Printf("key : %v\n",k)
 		v2 := s2.get(k)
-		fmt.Printf("s2.get : %v\n",v2)
 		if v2 == nil {
 			continue
 		}
 		err := v2.IsCoherentWith(element)
-		fmt.Printf(" %v\n %v\n", v2,element)
 		if err != nil {
 			fmt.Printf("%v\n",err)
 			return err
 		}
 	}
-	fmt.Printf("struct equal\n")
 	return nil
-	
 }
 
 func (n *nStruct) String() string {

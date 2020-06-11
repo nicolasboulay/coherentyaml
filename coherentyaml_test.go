@@ -2,6 +2,7 @@ package main
 
 import (
 	"testing"
+	"fmt"
 	//"log"
 	//"reflect"
 )
@@ -76,13 +77,15 @@ func TestShallMatch(t *testing.T) {
 - a: 2
   b: 3
   c: 4
-- a: [2 , 2] 			
-  b: [2 , 2] 			
-  c: [2 , 2] 			
-			`,`
-- c: [2 , 2] 			
-  a: [2 , 2] 			
-  c: [2 , 2] 						
+- a:
+   - 2
+   - 2
+  b: [2 , 2]
+  c: [2 , 2]
+`,`
+- c: [2 , 2]
+  a: [2 , 2]
+  b: [2 , 2]
 - a: 2
   b: 3
   c: 4
@@ -104,7 +107,7 @@ a:
 `},
 	}
 
-	for _, yml := range tables {
+	for i, yml := range tables {
 		var ast1 Ast
 		ast1.Read([]byte(yml.s1))
 		var ast2 Ast
@@ -112,8 +115,10 @@ a:
 		node1 := BigUglySwitch(ast1.Interface())
 		node2 := BigUglySwitch(ast2.Interface())
 		err := node1.IsCoherentWith(node2) 
-		if nil != err { 
-			t.Errorf("Want coherency : %s\n%#v\n%v", err, node1, node2)
+		if nil != err {
+			t.Errorf("Want coherency %v : %s\n%#v\n%#v\n", i, err, node1, node2)
+			fmt.Printf(" %s\n %s\n %v\n %v\n", yml.s1, yml.s2,ast1.Interface(), ast2.Interface())
+
 		}
 	}
 }

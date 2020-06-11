@@ -2,7 +2,8 @@ package main
 
 import (
 	"github.com/goccy/go-yaml"
-	"log"
+	//"log"
+	"fmt"
 )
 
 type Ast struct {
@@ -12,7 +13,8 @@ type Ast struct {
 func (ast *Ast) Read(yml []byte) {
 	 err := yaml.Unmarshal([]byte(yml), &ast.V);
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("%v %v\n", err, string(yml))
+		//log.Fatal(err)
 	}
 }
 

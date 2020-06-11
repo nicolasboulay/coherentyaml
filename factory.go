@@ -55,6 +55,9 @@ func  BigUglySwitch(in interface{}) node {
 		if len (mapNode) != 0 {
 			returnArrayNode = append(returnArrayNode,&nStruct{mapNode})
 		}
+		if len (returnArrayNode) == 1 {
+			return returnArrayNode[0]
+		}
 		return &nArray{returnArrayNode}
 	}
 	case reflect.Struct:
@@ -70,6 +73,9 @@ func  BigUglySwitch(in interface{}) node {
 		}
 		if len (mapNode) != 0 {
 			returnArrayNode = append(returnArrayNode,&nStruct{mapNode})
+		}
+		if len (returnArrayNode) == 1 {
+			return returnArrayNode[0]
 		}
 		return &nArray{returnArrayNode}
 	default:
