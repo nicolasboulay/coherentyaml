@@ -200,28 +200,112 @@ a:
 `,
 }
 
+	theorem := []func(node) node{
+		identity,
+		excludedmiddle,
+		doubleNegation,
+		classicalDoubleNegation,
+		noncontradictionsLaw,
+	}
+	relation := []func(node, node) node{
+		PeircesLaw,
+		DeMorgansLaws1,
+		DeMorgansLaws2,
+		Contraposition,
+		ModusPonens,
+		ModusTollens,
+	}
+	relation3 := []func(node, node, node) node{
+		ModusBarbara,
+		ModusBarbaraImplicatif,
+		DistributiveProperty1,
+		DistributiveProperty2,
+	}
+	
 	for _, A := range possible_set {
 		var ast Ast
 		ast.Read([]byte(A))
 		nodeA := BigUglySwitch(ast.Interface())
-		node := identity(nodeA)
-		err := node.IsCoherent()
-		if (err != nil) {
-			t.Errorf("Want coherency in %s : %s", node, err)
+		
+		for _,f :=  range theorem {
+			node := f(nodeA)
+			err := node.IsCoherent()
+			if (err != nil) {
+				t.Errorf("Want coherency in %s : %s", node, err)
+			}
 		}
 		
-//		for _, B := range possible_set {
-//
-//			ast.Read([]byte(B))
-//			nodeB := BigUglySwitch(ast.Interface())
-//
-//		
-//			
-//			err := node.n.IsCoherent()
-//			if (err != nil) {
-//				t.Errorf("Want coherency in %s : %s",node.name, err)
-//			}
+//		node := identity(nodeA)
+//		err := node.IsCoherent()
+//		if (err != nil) {
+//			t.Errorf("Want coherency in %s : %s", node, err)
 //		}
+//		node = excludedmiddle(nodeA)
+//		err  = node.IsCoherent()
+//		if (err != nil) {
+//			t.Errorf("Want coherency in %s : %s", node, err)
+//		}
+//		node = doubleNegation(nodeA)
+//		err  = node.IsCoherent()
+//		if (err != nil) {
+//			t.Errorf("Want coherency in %s : %s", node, err)
+//		}
+//		node = classicalDoubleNegation(nodeA)
+//		err  = node.IsCoherent()
+//		if (err != nil) {
+//			t.Errorf("Want coherency in %s : %s", node, err)
+//		}
+//		node = noncontradictionsLaw(nodeA)
+//		err  = node.IsCoherent()
+//		if (err != nil) {
+//			t.Errorf("Want coherency in %s : %s", node, err)
+//		}
+		
+		for _, B := range possible_set {
+
+			ast.Read([]byte(B))
+			nodeB := BigUglySwitch(ast.Interface())
+
+			for _,f :=  range relation {
+				node := f(nodeA, nodeB)
+				err := node.IsCoherent()
+				if (err != nil) {
+					t.Errorf("Want coherency in %s : %s", node, err)
+				}
+			}
+			
+			for _, C := range possible_set {
+
+				ast.Read([]byte(C))
+				nodeC := BigUglySwitch(ast.Interface())
+				
+				for _,f :=  range relation3 {
+					node := f(nodeA, nodeB, nodeC)
+					err := node.IsCoherent()
+					if (err != nil) {
+						t.Errorf("Want coherency in %s : %s", node, err)
+					}
+				}
+			}
+
+//			node := PeircesLaw (nodeA , nodeB)
+//			err := node.IsCoherent()
+//			if (err != nil) {
+//				t.Errorf("Want coherency in %s : %s",node, err)
+//			}
+//
+//			node = DeMorgansLaws1 (nodeA, nodeB) 
+//			err = node.IsCoherent()
+//			if (err != nil) {
+//				t.Errorf("Want coherency in %s : %s",node, err)
+//			}
+//			node = DeMorgansLaws2(nodeA, nodeB) 
+//			err = node.IsCoherent()
+//			if (err != nil) {
+//				t.Errorf("Want coherency in %s : %s",node, err)
+//			}
+
+		}
 	}
 }
 

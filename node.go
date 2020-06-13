@@ -1,14 +1,15 @@
 package main
 
 import (
-	"errors"
+	//"errors"
 	//"log"
 	"fmt"
 	"reflect"
+	"github.com/pkg/errors"
 )
 
 type node interface {
-	GetChild() []node
+	//GetChild() []node
 	IsCoherent() error
 	IsCoherentWith(n node) error
 	String() string
@@ -22,7 +23,7 @@ type OR struct {
 func (or *OR) GetChild() []node {
 	a, ok := or.child.(*nArray);
 	if ok {
-		return a.value
+		return a.child
 	}	
 	return []node{or.child} 
 }
@@ -32,7 +33,7 @@ func (or *OR) IsCoherent() error {
 	for _, child := range children {
 		err := child.IsCoherent() 
 		if (err != nil) {
-			return err
+			return errors.Wrap(err, "OR is not coherent")
 		}
 	}
 	return nil
@@ -53,7 +54,7 @@ func (or *OR) IsCoherentWith(n node) error {
 			return nil
 		}
 	}
-	return err
+	return errors.Wrap(err, "OR is not coherent with")
 }
 
 func (o *OR) String() string {
@@ -68,7 +69,7 @@ type Coherent struct {
 func (c *Coherent) GetChild() []node {
 	a, ok := c.child.(*nArray);
 	if ok {
-		return a.value
+		return a.child
 	}	
 	return []node{c.child} 
 }
@@ -93,7 +94,7 @@ func (c *Coherent) IsCoherentWith(n node) error {
 	for _, child := range children {
 		err = child.IsCoherentWith(n) 
 		if (err != nil) {
-			return err
+			return errors.Wrap(err, "Coherent is not coherent")
 		}
 	}
 	return nil
@@ -110,20 +111,18 @@ type Not struct {
 func (n *Not) GetChild() []node {
 	a, ok := n.child.(*nArray);
 	if ok {
-		return a.value
+		return a.child
 	}	
 	return []node{n.child} 
 }
 
 func (n *Not) IsCoherent() error {
-	//children := n.GetChild()
-	
 	err := n.child.IsCoherent() 
 	if (err != nil) {
-		return err
+		return nil
 	}
 	
-	return nil
+	return errors.Wrap(err, "Not is not coherent")
 }
 
 func (n *Not) IsCoherentWith(o node) error {
@@ -137,7 +136,7 @@ func (n *Not) IsCoherentWith(o node) error {
 		return nil
 	}
 	//log.Print("not : Both node should be different")
-	return errors.New("Both node should be different") //TODO: printing and referencing the yaml text
+	return fmt.Errorf("Not, Both node should be different %v vs %v", n, o) 
 }
 
 func (n *Not) String() string {
@@ -148,9 +147,9 @@ type Str string
 
 var StrZero Str = Str("")
 
-func (s Str) GetChild() []node {
-	return []node{}
-} 
+//func (s Str) GetChild() []node {
+//	return []node{}
+//} 
 
 func (s Str) IsCoherent() error {
 	return nil
@@ -180,9 +179,9 @@ type leaf struct {
 	value reflect.Value
 }
 
-func (l * leaf) GetChild() []node {
-	return []node{}
-}
+//func (l * leaf) GetChild() []node {
+//	return []node{}
+//}
 
 func (l *leaf) IsCoherent() error {
 	return nil
@@ -234,28 +233,31 @@ func (l *leaf) String() string {
 }
 
 type nStruct struct {
-	value map[node]node
+	child map[node]node
 }
 
-func (n *nStruct) GetChild() []node {
-	var v []node
-	for k := range n.value {
-		v = append(v, k)
-	}
-	return v
-}
+//func (n *nStruct) GetChild() []node {
+//	var v []node
+//	for k := range n.value {
+//		v = append(v, k)
+//	}
+//	return v
+//}
 
 //todo : à complexifier par regexp possible  
 func (n *nStruct) get(k node) node {
-	return n.value[k]
+	return n.child[k]
 }
 
 func (n *nStruct) IsCoherent() error {
-	c := n.GetChild()
-	for _,node := range c {
-		err := node.IsCoherent()
+	for k,node := range n.child {
+		err := k.IsCoherent()
 		if (err != nil) {
-			return err
+			return errors.Wrapf(err, "Struct is not coherent, key is %v",k)
+		}
+		err = node.IsCoherent()
+		if (err != nil) {
+			return errors.Wrapf(err, "Struct is not coherent, [%v] value is %v ", k, node)
 		}
 	}
 	return nil
@@ -272,38 +274,37 @@ func (n *nStruct) IsCoherentWith(n2 node) error {
 	if !ok {
 		return fmt.Errorf("Structure needed :\n %v vs\n %v", n, n2)
 	}
-	for k, element := range n.value {
+	for k, element := range n.child {
 		v2 := s2.get(k)
 		if v2 == nil {
 			continue
 		}
 		err := v2.IsCoherentWith(element)
 		if err != nil {
-			fmt.Printf("%v\n",err)
-			return err
+			return errors.Wrapf(err, "Struct %v is not coherent with %v",v2, element)
 		}
 	}
 	return nil
 }
 
 func (n *nStruct) String() string {
-	return fmt.Sprintf("nStruct{%v}", n.value)
+	return fmt.Sprintf("nStruct{%v}", n.child)
 }
 
 type nArray struct {
-	value []node
+	child []node
 }
 
-func (a *nArray) GetChild() []node {
-	return a.value
-}
+//func (a *nArray) GetChild() []node {
+//	return a.child
+//}
 
 func (a *nArray) IsCoherent() error {
-	c := a.GetChild()
-	for _,node := range c {
+	//c := a.GetChild()
+	for _,node := range a.child {
 		err := node.IsCoherent()
 		if (err != nil) {
-			return err
+			return errors.Wrapf(err, "Array is not coherent, %v",node)
 		}
 	}
 	return nil
@@ -318,12 +319,11 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 	if !ok {
 		return fmt.Errorf("Array needed : %v vs %v", a, n2)
 	}
-	c  :=  a.GetChild()
-	c2 := a2.GetChild()
+	c  :=  a.child
+	c2 := a2.child
 	for _,k := range c {
 		ok := false
 		for _,k2 := range c2 {
-			//fmt.Printf("vs: %v\n    %v\n",k2,k)
 			err := k2.IsCoherentWith(k)
 			//log.Print(err)
 			if (err == nil) {
@@ -340,39 +340,7 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 }
 
 func (n *nArray) String() string {
-	return fmt.Sprintf("[%v]", n.value)
+	return fmt.Sprintf("[%v]", n.child)
 }
 
-//func yamlToNode(yaml interface{}) node{
-//	v := reflect.ValueOf(yaml)
-//	
-//	switch v.Kind() {
-//	case reflect.Bool:
-//		fmt.Printf("bool: %v\n", v.Bool())
-//	case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
-//		fmt.Printf("int: %v\n", v.Int())
-//	case reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64:
-//		fmt.Printf("int: %v\n", v.Uint())
-//	case reflect.Float32, reflect.Float64:
-//		fmt.Printf("float: %v\n", v.Float())
-//	case reflect.String:
-//		fmt.Printf("string: %v\n", v.String())
-//	case reflect.Slice:
-//		fmt.Printf("slice: len=%d, %v\n", v.Len(), v.Interface())
-//	case reflect.Map:
-//		fmt.Printf("map: \n");
-//		iter := reflect.ValueOf(yaml).MapRange()
-//		for iter.Next() {
-//			k := iter.Key()
-//			fmt.Printf("[%v] ", k);
-//			v := iter.Value()
-//			yamlToNode(v.Interface())
-//		}
-//	case reflect.Chan:
-//		fmt.Printf("chan %v\n", v.Interface())
-//	default:
-//		fmt.Printf("\n%v\n",v)
-//	}
-//	return nil
-//}
 
