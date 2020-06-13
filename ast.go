@@ -2,8 +2,7 @@ package main
 
 import (
 	"github.com/goccy/go-yaml"
-	//"log"
-	"fmt"
+	"log"
 )
 
 type Ast struct {
