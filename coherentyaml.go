@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-//	"github.com/goccy/go-yaml"
-	//goyaml3 "gopkg.in/yaml.v3"
-//	"log"
 	"flag"
 	"io/ioutil"
 	"os"

@@ -66,7 +66,6 @@ func  BigUglySwitch(in interface{}) node {
 		for i := 0; i < v.NumField(); i++ {
 			if v.Field(i).CanInterface() {			
 				fieldName := v.Type().Field(i).Name
-				//log.Printf("^: %v %s\n",v,fieldName)
 				fieldValue := v.Field(i).Interface()
 				returnArrayNode = appendArrayWithKey(returnArrayNode, mapNode, fieldName, fieldValue)
 			}

@@ -5,7 +5,6 @@ import (
 	"reflect"
 )
 
-
 func TestNode(t *testing.T) {
 	s1 := Str("s1")
 	c:= Coherent{&nArray{[]node{&s1,&StrZero}}}
@@ -23,7 +22,6 @@ func TestNode(t *testing.T) {
 		t.Errorf("Want coherency : %s", err)
 	}
 }
-
 
 func TestCoherent(t *testing.T) {
 	s1 := Str("s1")
@@ -63,19 +61,15 @@ func TestNotCoherent(t *testing.T) {
 	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
 	not := Not{&s1}
 	root2 := Coherent{&nArray{[]node{&not,&s1}}}
-	//root3 := Coherent{[]node{&OR{[]node{&fakenot,&s1}},&s1}}
 	intLiteral := leaf{reflect.ValueOf(3)}
 	incoherentInt := Coherent{&nArray{[]node{&intLiteral,&leaf{reflect.ValueOf(2)}}}}
 	tables := []struct{ name string; n node;}{
 		{"root",&root},
 		{"root2",&root2},
 		{"incoherentInt",&incoherentInt},
-		//{"root3",&root3}, // using isCoherent in iscoherentwith is not decided
-
 	}
 
 	for _, node := range tables {
-		//log.Print(" % " + node.name + "\n")
 		err := node.n.IsCoherent()
 		if (err == nil) {
 			t.Errorf("Want error in %s : %v",node.name, node.n)

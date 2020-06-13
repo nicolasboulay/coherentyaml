@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"errors"
 	//"log"
 	"fmt"
 	"reflect"
@@ -9,11 +8,9 @@ import (
 )
 
 type node interface {
-	//GetChild() []node
 	IsCoherent() error
 	IsCoherentWith(n node) error
 	String() string
-	//New(interface{}) node
 }
 
 type OR struct {
@@ -88,7 +85,6 @@ func (c *Coherent) IsCoherent() error {
 }
 
 func (c *Coherent) IsCoherentWith(n node) error {
-	//log.Printf("Coherent %v %v ?",c,n)
 	children := c.GetChild()
 	var err error 
 	for _, child := range children {
@@ -125,17 +121,11 @@ func (n *Not) IsCoherent() error {
 	return errors.Wrap(err, "Not is not coherent")
 }
 
-func (n *Not) IsCoherentWith(o node) error {
-	
-	var err error
-	//log.Printf("%v",n.child[0])
-	//log.Printf("%v",o)
-	err = n.child.IsCoherentWith(o)
+func (n *Not) IsCoherentWith(o node) error {	
+	err := n.child.IsCoherentWith(o)
 	if (err != nil) {
-		//log.Print(nil)
 		return nil
 	}
-	//log.Print("not : Both node should be different")
 	return fmt.Errorf("Not, Both node should be different %v vs %v", n, o) 
 }
 
@@ -146,10 +136,6 @@ func (n *Not) String() string {
 type Str string
 
 var StrZero Str = Str("")
-
-//func (s Str) GetChild() []node {
-//	return []node{}
-//} 
 
 func (s Str) IsCoherent() error {
 	return nil
@@ -178,10 +164,6 @@ func (s Str) String() string {
 type leaf struct {
 	value reflect.Value
 }
-
-//func (l * leaf) GetChild() []node {
-//	return []node{}
-//}
 
 func (l *leaf) IsCoherent() error {
 	return nil
@@ -236,14 +218,6 @@ type nStruct struct {
 	child map[node]node
 }
 
-//func (n *nStruct) GetChild() []node {
-//	var v []node
-//	for k := range n.value {
-//		v = append(v, k)
-//	}
-//	return v
-//}
-
 //todo : à complexifier par regexp possible  
 func (n *nStruct) get(k node) node {
 	return n.child[k]
@@ -295,12 +269,7 @@ type nArray struct {
 	child []node
 }
 
-//func (a *nArray) GetChild() []node {
-//	return a.child
-//}
-
 func (a *nArray) IsCoherent() error {
-	//c := a.GetChild()
 	for _,node := range a.child {
 		err := node.IsCoherent()
 		if (err != nil) {
@@ -325,7 +294,6 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 		ok := false
 		for _,k2 := range c2 {
 			err := k2.IsCoherentWith(k)
-			//log.Print(err)
 			if (err == nil) {
 				ok = true
 				break
@@ -342,5 +310,3 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 func (n *nArray) String() string {
 	return fmt.Sprintf("[%v]", n.child)
 }
-
-

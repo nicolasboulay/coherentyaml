@@ -3,8 +3,6 @@ package main
 import (
 	"testing"
 	"fmt"
-	//"log"
-	//"reflect"
 )
 func TestIso(t *testing.T) {
 	tables := []string {
@@ -199,7 +197,6 @@ a:
     h: 5
 `,
 }
-
 	theorem := []func(node) node{
 		identity,
 		excludedmiddle,
@@ -234,33 +231,7 @@ a:
 				t.Errorf("Want coherency in %s : %s", node, err)
 			}
 		}
-		
-//		node := identity(nodeA)
-//		err := node.IsCoherent()
-//		if (err != nil) {
-//			t.Errorf("Want coherency in %s : %s", node, err)
-//		}
-//		node = excludedmiddle(nodeA)
-//		err  = node.IsCoherent()
-//		if (err != nil) {
-//			t.Errorf("Want coherency in %s : %s", node, err)
-//		}
-//		node = doubleNegation(nodeA)
-//		err  = node.IsCoherent()
-//		if (err != nil) {
-//			t.Errorf("Want coherency in %s : %s", node, err)
-//		}
-//		node = classicalDoubleNegation(nodeA)
-//		err  = node.IsCoherent()
-//		if (err != nil) {
-//			t.Errorf("Want coherency in %s : %s", node, err)
-//		}
-//		node = noncontradictionsLaw(nodeA)
-//		err  = node.IsCoherent()
-//		if (err != nil) {
-//			t.Errorf("Want coherency in %s : %s", node, err)
-//		}
-		
+				
 		for _, B := range possible_set {
 
 			ast.Read([]byte(B))
@@ -287,24 +258,6 @@ a:
 					}
 				}
 			}
-
-//			node := PeircesLaw (nodeA , nodeB)
-//			err := node.IsCoherent()
-//			if (err != nil) {
-//				t.Errorf("Want coherency in %s : %s",node, err)
-//			}
-//
-//			node = DeMorgansLaws1 (nodeA, nodeB) 
-//			err = node.IsCoherent()
-//			if (err != nil) {
-//				t.Errorf("Want coherency in %s : %s",node, err)
-//			}
-//			node = DeMorgansLaws2(nodeA, nodeB) 
-//			err = node.IsCoherent()
-//			if (err != nil) {
-//				t.Errorf("Want coherency in %s : %s",node, err)
-//			}
-
 		}
 	}
 }
