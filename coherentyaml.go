@@ -5,7 +5,12 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"log"
 )
+
+// plusieurs fichiers peuvent lu, ils deiennes un seul node avec un Coherent comme racine
+// de base, coherentyaml, ne retourne rien.
+// en cas d'erreur, le programme retourne la contradiction et sa position
 
 func main() {
 	flag.Parse()
@@ -18,5 +23,9 @@ func main() {
 	
 	var ast Ast
 	ast.Read(ymlContent)
-	fmt.Println(ast)
+	node := BigUglySwitch(ast.Interface())
+	err = node.IsCoherent() 
+	if nil != err { 
+		log.Fatal(err)
+	}
 }

@@ -4,7 +4,7 @@ import (
 	//"log"
 	"fmt"
 	"reflect"
-	"github.com/pkg/errors"
+	"strings"
 )
 
 type node interface {
@@ -28,34 +28,38 @@ func (or *OR) GetChild() []node {
 func (or *OR) IsCoherent() error {
 	children := or.GetChild()
 	for _, child := range children {
-		err := child.IsCoherent() 
-		if (err != nil) {
-			return errors.Wrap(err, "OR is not coherent")
+		err := child.IsCoherent()
+		if (err == nil) {
+			debugPrintf("OR IsCoherent %v : true\n", or)
+			return nil
 		}
+
 	}
-	return nil
+	debugPrintf("OR IsCoherent %v : false\n", or)
+	return fmt.Errorf("OR %v is not coherent", children)
 }
 
 func (or *OR) IsCoherentWith(n node) error {
 	children := or.GetChild()
-	var err error 
+	var err error
 	for _, child := range children {
-		err = child.IsCoherentWith(n) 
+		err = child.IsCoherentWith(n)
 		if (err == nil) {
+			debugPrintf("OR IsCoherentWith %v    %v : true\n", or,n)
 			return nil
 		}
 	}
-	for _, child := range children {
-		err = n.IsCoherentWith(child) 
-		if (err == nil) {
-			return nil
-		}
-	}
-	return errors.Wrap(err, "OR is not coherent with")
+	debugPrintf("OR IsCoherentWith %v    %v : false\n", or, n)
+	return fmt.Errorf("OR is not coherent with : %v", err)
 }
 
 func (o *OR) String() string {
-	return fmt.Sprintf("OR{%v}", o.GetChild())
+	var ret string
+	for _, child := range o.GetChild() {
+		ret += fmt.Sprintf("%v | ", child)
+	}
+	ret = strings.TrimSuffix(ret,"| ")
+	return "(" + ret + ")"
 }
 
 
@@ -80,7 +84,9 @@ func (c *Coherent) IsCoherent() error {
 				return child2.IsCoherentWith(child)
 			}
 		}
-	}
+	}	
+	debugPrintf("Coherent IsCoherent %v : true\n", c)
+
 	return nil
 }
 
@@ -90,14 +96,20 @@ func (c *Coherent) IsCoherentWith(n node) error {
 	for _, child := range children {
 		err = child.IsCoherentWith(n) 
 		if (err != nil) {
-			return errors.Wrap(err, "Coherent is not coherent")
+			return fmt.Errorf("%v is not coherent with %v : %v",c,n,err)
 		}
 	}
+	debugPrintf("Coherent IsCoherentWith %v %v : true\n", c, n)
 	return nil
 }
 
 func (c *Coherent) String() string {
-	return fmt.Sprintf("Coherent{%v}", c.GetChild())
+	var ret string
+	for _, child := range c.GetChild() {
+		ret += fmt.Sprintf("%v&", child)
+	}
+	ret = strings.TrimSuffix(ret,"&")
+	return "(" + ret + ")"
 }
 
 type Not struct {
@@ -113,24 +125,26 @@ func (n *Not) GetChild() []node {
 }
 
 func (n *Not) IsCoherent() error {
-	err := n.child.IsCoherent() 
+	err := n.child.IsCoherent()
 	if (err != nil) {
 		return nil
 	}
-	
-	return errors.Wrap(err, "Not is not coherent")
+	debugPrintf("Not IsCoherent %v : false\n", n)
+	return fmt.Errorf("Not is not coherent '%v'",n.child)
 }
 
 func (n *Not) IsCoherentWith(o node) error {	
-	err := n.child.IsCoherentWith(o)
-	if (err != nil) {
+	err1 := n.IsCoherent()
+	err2 := n.IsCoherent()	
+	if (err1 == nil && err2 == nil) {
 		return nil
 	}
+	debugPrintf("Not IsCoherentWith %v %v : false\n", n, o)
 	return fmt.Errorf("Not, Both node should be different %v vs %v", n, o) 
 }
 
 func (n *Not) String() string {
-	return fmt.Sprintf("Not{%v}", n.GetChild())
+	return fmt.Sprintf(" ~%v ", n.GetChild())
 }
 
 type Str string
@@ -144,7 +158,7 @@ func (s Str) IsCoherent() error {
 func (s Str) IsCoherentWith(n node) error {
 	s2, ok := n.(Str);
 	if (!ok) {
-		//case with OR/Not/Coherency/.. in between
+		//case with OR/Not/Coherency/.. 
 		return n.IsCoherentWith(s)
 	}
 	if (s2 == s) {
@@ -153,12 +167,12 @@ func (s Str) IsCoherentWith(n node) error {
 		return nil
 	}
 	
-	return errors.New("String shall be coherent")
+	return fmt.Errorf("String shall be coherent")
 }
 
 
 func (s Str) String() string {
-	return fmt.Sprintf("Str{%s}",string(s))
+	return fmt.Sprintf("'%s'",string(s))
 }
 
 type leaf struct {
@@ -227,13 +241,14 @@ func (n *nStruct) IsCoherent() error {
 	for k,node := range n.child {
 		err := k.IsCoherent()
 		if (err != nil) {
-			return errors.Wrapf(err, "Struct is not coherent, key is %v",k)
+			return fmt.Errorf("Struct is not coherent, key is %v : %v",k, err)
 		}
 		err = node.IsCoherent()
 		if (err != nil) {
-			return errors.Wrapf(err, "Struct is not coherent, [%v] value is %v ", k, node)
+			return fmt.Errorf("Struct is not coherent, [%v] valuse is %v: %v ",k, node, err)
 		}
 	}
+	debugPrintf("Struct IsCoherent %v : true\n", n)
 	return nil
 }
 // une struct est coherent avec une autre si les champs présent sont coherent entre eux.
@@ -243,10 +258,10 @@ func (n *nStruct) IsCoherent() error {
 // (ex: avec regexp, si plusieurs match les faire du plus particluiers au plus général, coherent: {{...},{ ..., "*": nil})
 // si une clef est absente d'un coté, ce n'est pas grave.
 func (n *nStruct) IsCoherentWith(n2 node) error {
-	//fmt.Printf("Structure :\n %v vs\n %v\n", n, n2)
 	s2, ok := n2.(*nStruct)
 	if !ok {
-		return fmt.Errorf("Structure needed :\n %v vs\n %v", n, n2)
+		//return fmt.Errorf("Structure needed, %v vs %v\n", n, n2)
+		return n2.IsCoherentWith(n)
 	}
 	for k, element := range n.child {
 		v2 := s2.get(k)
@@ -255,14 +270,19 @@ func (n *nStruct) IsCoherentWith(n2 node) error {
 		}
 		err := v2.IsCoherentWith(element)
 		if err != nil {
-			return errors.Wrapf(err, "Struct %v is not coherent with %v",v2, element)
+			return fmt.Errorf("Struct %v is not coherent with %v : %v",v2, element, err)
 		}
 	}
+	debugPrintf("Struct IsCoherentWith %v %v : true\n", n, n2)
 	return nil
 }
 
 func (n *nStruct) String() string {
-	return fmt.Sprintf("nStruct{%v}", n.child)
+	var ret string
+	for k, element := range n.child {
+		ret+= fmt.Sprintf("%v:%v ", k,element)
+	}
+	return "{"+ret+"}"
 }
 
 type nArray struct {
@@ -273,9 +293,11 @@ func (a *nArray) IsCoherent() error {
 	for _,node := range a.child {
 		err := node.IsCoherent()
 		if (err != nil) {
-			return errors.Wrapf(err, "Array is not coherent, %v",node)
+			return fmt.Errorf("Array is not coherent, %v : %v",node, err)
+			
 		}
 	}
+	debugPrintf("Array IsCoherent %v : true\n", a)
 	return nil
 }
 
@@ -286,7 +308,7 @@ func (a *nArray) IsCoherent() error {
 func (a *nArray) IsCoherentWith(n2 node) error {
 	a2, ok := n2.(*nArray)
 	if !ok {
-		return fmt.Errorf("Array needed : %v vs %v", a, n2)
+		return n2.IsCoherentWith(a)
 	}
 	c  :=  a.child
 	c2 := a2.child
@@ -304,9 +326,22 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 		}
 
 	}
+	debugPrintf("Array IsCoherentWith %v %v : true\n",a,n2)
 	return nil
 }
 
 func (n *nArray) String() string {
-	return fmt.Sprintf("[%v]", n.child)
+	var ret string
+	for _,e := range n.child {
+		ret += fmt.Sprintf("%v,", e)
+	}
+	return "["+ret+"]"
+}
+
+var debug = false
+func debugPrintf(format string, a ...interface{}) (n int, err error) {
+	if debug {
+		return fmt.Printf(format, a...)
+	}
+	return 0, nil
 }

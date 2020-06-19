@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 	"fmt"
+	"reflect"
 )
 func TestIso(t *testing.T) {
 	tables := []string {
@@ -142,9 +143,7 @@ func TestShallNotMatch(t *testing.T) {
 	}
 }
 
-// from https://fr.wikipedia.org/wiki/Calcul_des_propositions
-func TestCalculDeProposition(t *testing.T) {
-	possible_set := []string{
+var possible_set []string = []string{
 		"a: 2",
 		"a: toto",
 //s s s 
@@ -197,13 +196,35 @@ a:
     h: 5
 `,
 }
+
+// from https://fr.wikipedia.org/wiki/Calcul_des_propositions
+
+func TestCalculDePropositionTheorem(t *testing.T) {
 	theorem := []func(node) node{
+		//notTrue,
 		identity,
 		excludedmiddle,
 		doubleNegation,
 		classicalDoubleNegation,
 		noncontradictionsLaw,
 	}
+	for _, A := range possible_set {
+		var ast Ast
+		ast.Read([]byte(A))
+		nodeA := BigUglySwitch(ast.Interface())
+		
+		for _,f :=  range theorem {
+			node := f(nodeA)
+			err := node.IsCoherent()
+			//fmt.Printf("%v -> %v : %v\n", nodeA, node, err)
+			if (err != nil) {
+				t.Errorf("Want coherency in %s : %s", node, err)
+			}
+		}
+		break
+	}	
+}
+func TestCalculDeProposition2(t *testing.T) {
 	relation := []func(node, node) node{
 		PeircesLaw,
 		DeMorgansLaws1,
@@ -211,6 +232,45 @@ a:
 		Contraposition,
 		ModusPonens,
 		ModusTollens,
+	}
+	for _, A := range possible_set {
+		var ast Ast
+		ast.Read([]byte(A))
+		nodeA := BigUglySwitch(ast.Interface())
+		
+		for _, B := range possible_set {
+
+			ast.Read([]byte(B))
+			nodeB := BigUglySwitch(ast.Interface())
+
+			for i,f :=  range relation {
+				node := f(nodeA, nodeB)
+				err := node.IsCoherent()
+				if (err != nil) {
+					t.Fatalf("Want coherency in %v %v %v : %s",
+						i, nodeA, nodeB, err)
+				}
+			}
+		}
+	}
+}
+
+func TestCalculDeProposition(t *testing.T) {
+	relation := []func(node, node) node{
+		PeircesLaw,
+		DeMorgansLaws1,
+		DeMorgansLaws2,
+		Contraposition,
+		ModusPonens,
+		ModusTollens,
+	}
+	relationString := []string{
+		"PeircesLaw",
+		"DeMorgansLaws1",
+		"DeMorgansLaws2",
+		"Contraposition",
+		"ModusPonens",
+		"ModusTollens",
 	}
 	relation3 := []func(node, node, node) node{
 		ModusBarbara,
@@ -224,15 +284,7 @@ a:
 		ast.Read([]byte(A))
 		nodeA := BigUglySwitch(ast.Interface())
 		
-		for _,f :=  range theorem {
-			node := f(nodeA)
-			err := node.IsCoherent()
-			if (err != nil) {
-				t.Errorf("Want coherency in %s : %s", node, err)
-			}
-		}
-				
-		for _, B := range possible_set {
+		for i, B := range possible_set {
 
 			ast.Read([]byte(B))
 			nodeB := BigUglySwitch(ast.Interface())
@@ -241,10 +293,10 @@ a:
 				node := f(nodeA, nodeB)
 				err := node.IsCoherent()
 				if (err != nil) {
-					t.Errorf("Want coherency in %s : %s", node, err)
+					t.Errorf("Want coherency in %s %v %v : %s", relationString[i], nodeA, nodeB, err)
 				}
 			}
-			
+			break
 			for _, C := range possible_set {
 
 				ast.Read([]byte(C))
@@ -259,6 +311,20 @@ a:
 				}
 			}
 		}
+	}
+}
+
+func TestModusTollens(t *testing.T) {
+	var ast Ast
+	ast.Read([]byte("a: 2"))
+	nodeA := BigUglySwitch(ast.Interface())
+	ast.Read([]byte("a: 2"))
+	nodeB := BigUglySwitch(ast.Interface())
+	node := ModusTollens(nodeA, nodeB)
+	err := node.IsCoherent()
+	if (err != nil) {
+		fmt.Printf("modusTollens :\n %v\n", node)
+		t.Errorf("Want coherency : %s\n", err)
 	}
 }
 
@@ -293,6 +359,10 @@ func implication(a node, b node) node {
 // (A -> A)
 func identity(a node) node {
 	return implication(a, a)
+}
+
+func notTrue(a node) node {
+	return ynot(&leaf{reflect.ValueOf(1)})
 }
 
 // (A or ~A)
@@ -342,7 +412,7 @@ func ModusPonens(a node, b node) node {
 
 // ((A -> B) & ~B) -> ~A
 func ModusTollens(a node, b node) node {
-	return implication(yand(implication(a,b),ynot(b)),ynot(b))
+	return implication(yand(implication(a,b),ynot(b)),ynot(a))
 }
 
 // ((A -> B) & (B -> C)) -> (A -> C)
@@ -364,4 +434,3 @@ func DistributiveProperty1(a node, b node, c node) node {
 func DistributiveProperty2(a node, b node, c node) node {
 	return equivalence(yor(a,yand(b,c)),yand(yor(a,b),yor(a,c)))
 }
-
