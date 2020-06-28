@@ -11,6 +11,8 @@ type node interface {
 	IsCoherent() error
 	IsCoherentWith(n node) error
 	String() string
+	IsOperator() bool
+	AsKey() interface{}
 }
 
 type OR struct {
@@ -30,12 +32,12 @@ func (or *OR) IsCoherent() error {
 	for _, child := range children {
 		err := child.IsCoherent()
 		if (err == nil) {
-			debugPrintf("OR IsCoherent %v : true\n", or)
+			//debugPrintf("OR IsCoherent %v : true\n", or)
 			return nil
 		}
 
 	}
-	debugPrintf("OR IsCoherent %v : false\n", or)
+	//debugPrintf("OR IsCoherent %v : false\n", or)
 	return fmt.Errorf("OR %v is not coherent", children)
 }
 
@@ -62,6 +64,13 @@ func (o *OR) String() string {
 	return "(" + ret + ")"
 }
 
+func (*OR) IsOperator() bool {
+	return true
+}
+
+func (o *OR) AsKey() interface{} {
+	return o
+}
 
 type Coherent struct {
 	child node
@@ -112,6 +121,14 @@ func (c *Coherent) String() string {
 	return "(" + ret + ")"
 }
 
+func (*Coherent) IsOperator() bool {
+	return true
+}
+
+func (c *Coherent) AsKey() interface{} {
+	return c
+}
+
 type Not struct {
 	child node
 }
@@ -133,13 +150,30 @@ func (n *Not) IsCoherent() error {
 	return fmt.Errorf("Not is not coherent '%v'",n.child)
 }
 
-func (n *Not) IsCoherentWith(o node) error {	
-	err1 := n.IsCoherent()
-	err2 := n.IsCoherent()	
-	if (err1 == nil && err2 == nil) {
-		return nil
+// This is a very special case.
+// I mix classical logic and proposal construction.
+// To use the same object we should split the 2 use case :
+//  When the child are a part of a proposal (leaf, struct, array), we behave like "we don't want this to be that"
+// (/A.B) became /(A.B)
+// "The sky is not blue" // proposal
+// vs "The sky is blue and not the weather is nice"
+
+func (n *Not) IsCoherentWith(o node) error {
+	if n.child.IsOperator() { // proposal
+		err1 := n.IsCoherent()
+		err2 := o.IsCoherent()	
+		if (err1 == nil && err2 == nil) {
+			debugPrintf("Not %v vs %v: true (proposal)\n", n, o)
+			return nil
+		}
+	} else { // incomplete proposal
+		err := n.child.IsCoherentWith(o)
+		if (err != nil) {
+			debugPrintf("Not %v vs %v : true (part) %v\n", n, o , err)
+			return nil
+		}
 	}
-	debugPrintf("Not IsCoherentWith %v %v : false\n", n, o)
+	debugPrintf("Not %v vs %v: false\n", n, o)
 	return fmt.Errorf("Not, Both node should be different %v vs %v", n, o) 
 }
 
@@ -147,33 +181,51 @@ func (n *Not) String() string {
 	return fmt.Sprintf(" ~%v ", n.GetChild())
 }
 
-type Str string
-
-var StrZero Str = Str("")
-
-func (s Str) IsCoherent() error {
-	return nil
+func (*Not) IsOperator() bool {
+	return true
 }
 
-func (s Str) IsCoherentWith(n node) error {
-	s2, ok := n.(Str);
-	if (!ok) {
-		//case with OR/Not/Coherency/.. 
-		return n.IsCoherentWith(s)
-	}
-	if (s2 == s) {
-		return nil
-	} else if s == StrZero || s2 == StrZero {
-		return nil
-	}
-	
-	return fmt.Errorf("String shall be coherent")
+func (n *Not) AsKey() interface{} {
+	return n
 }
 
+// it could be a leaf but string are common, special case could be handle
+// 
+//type Str string
 
-func (s Str) String() string {
-	return fmt.Sprintf("'%s'",string(s))
-}
+var StrZero  node = &leaf{reflect.ValueOf("")}
+
+//func (s Str) IsCoherent() error {
+//	return nil
+//}
+//
+//func (s Str) IsCoherentWith(n node) error {
+//	s2, ok := n.(Str);
+//	if (!ok) {
+//		//case with OR/Not/Coherency/..
+//		if n.IsOperator() {
+//			return n.IsCoherentWith(s)
+//		} else {
+//			return fmt.Errorf("String shall be coherent")
+//		}
+//	}
+//	if (s2 == s) {
+//		return nil
+//	} else if s == StrZero || s2 == StrZero {
+//		return nil
+//	}
+//	
+//	return fmt.Errorf("String shall be coherent")
+//}
+//
+//
+//func (s Str) String() string {
+//	return fmt.Sprintf("'%s'",string(s))
+//}
+//
+//func (Str) IsOperator() bool {
+//	return false
+//}
 
 type leaf struct {
 	value reflect.Value
@@ -187,7 +239,11 @@ func (l *leaf) IsCoherentWith(n node) error {
 	l2, ok := n.(*leaf);
 	if (!ok) {
 		//case with OR/Not/Coherency/.. in between
-		return n.IsCoherentWith(l)
+		if n.IsOperator() {			
+			return n.IsCoherentWith(l)
+		} else {
+			return fmt.Errorf("Incoherent leaf %v vs %v", l, n)
+		}
 	}
 
 	if (l2.value.Interface() == l.value.Interface()) {
@@ -228,27 +284,41 @@ func (l *leaf) String() string {
 	return fmt.Sprintf("%v", l.value)
 }
 
-type nStruct struct {
-	child map[node]node
+func (*leaf) IsOperator() bool {
+	return false
 }
 
-//todo : à complexifier par regexp possible  
+func (l *leaf) AsKey() interface{} {
+	return l.value.Interface()
+}
+
+type nStruct struct {
+	child map[interface{}] struct { n node; key node}
+}
+
+//todo : à complexifier par regexp possible
+// un type string se retrouve dans un leaf
+// un leaf contient un object reflect qui n'est "comparrable" qu'avec Interface()
+// d'ou l'usage du AsKey
 func (n *nStruct) get(k node) node {
-	return n.child[k]
+	key := k.AsKey()
+	value := n.child[key]
+	debugPrintf("Struct get[%v] %v\n", key, value)
+	return value.n
 }
 
 func (n *nStruct) IsCoherent() error {
-	for k,node := range n.child {
-		err := k.IsCoherent()
+	for _,node := range n.child {
+		err := node.key.IsCoherent()
 		if (err != nil) {
-			return fmt.Errorf("Struct is not coherent, key is %v : %v",k, err)
+			return fmt.Errorf("Struct is not coherent, key is %v : %v",node.key, err)
 		}
-		err = node.IsCoherent()
+		err = node.n.IsCoherent()
 		if (err != nil) {
-			return fmt.Errorf("Struct is not coherent, [%v] valuse is %v: %v ",k, node, err)
+			return fmt.Errorf("Struct is not coherent, [%v] valuse is %v: %v ",node.key, node.n, err)
 		}
 	}
-	debugPrintf("Struct IsCoherent %v : true\n", n)
+	//debugPrintf("Struct IsCoherent %v : true\n", n)
 	return nil
 }
 // une struct est coherent avec une autre si les champs présent sont coherent entre eux.
@@ -261,17 +331,23 @@ func (n *nStruct) IsCoherentWith(n2 node) error {
 	s2, ok := n2.(*nStruct)
 	if !ok {
 		//return fmt.Errorf("Structure needed, %v vs %v\n", n, n2)
-		return n2.IsCoherentWith(n)
+		if n2.IsOperator() {
+			return n2.IsCoherentWith(n)
+		} else {
+			return fmt.Errorf("Struct %v is not coherent with %v ",n, n2)
+		}
+		debugPrintf("Struct")
 	}
-	for k, element := range n.child {
-		v2 := s2.get(k)
+	for _, element := range n.child {
+		v2 := s2.get(element.key)
 		if v2 == nil {
 			continue
 		}
-		err := v2.IsCoherentWith(element)
+		err := v2.IsCoherentWith(element.n)
 		if err != nil {
-			return fmt.Errorf("Struct %v is not coherent with %v : %v",v2, element, err)
+			return fmt.Errorf("Struct %v is not coherent with %v : %v",v2, element.n, err)
 		}
+		debugPrintf("Struct")
 	}
 	debugPrintf("Struct IsCoherentWith %v %v : true\n", n, n2)
 	return nil
@@ -279,10 +355,18 @@ func (n *nStruct) IsCoherentWith(n2 node) error {
 
 func (n *nStruct) String() string {
 	var ret string
-	for k, element := range n.child {
-		ret+= fmt.Sprintf("%v:%v ", k,element)
+	for _, element := range n.child {
+		ret+= fmt.Sprintf("%v:%v ", element.key, element.n)
 	}
 	return "{"+ret+"}"
+}
+
+func (* nStruct) IsOperator() bool {
+	return false
+}
+
+func (n *nStruct) AsKey() interface{} {
+	return n
 }
 
 type nArray struct {
@@ -338,10 +422,20 @@ func (n *nArray) String() string {
 	return "["+ret+"]"
 }
 
-var debug = false
+func (* nArray) IsOperator() bool {
+	return false
+}
+
+func (a *nArray) AsKey() interface{} {
+	return a
+}
+
+var debug = true
 func debugPrintf(format string, a ...interface{}) (n int, err error) {
 	if debug {
 		return fmt.Printf(format, a...)
 	}
 	return 0, nil
 }
+
+

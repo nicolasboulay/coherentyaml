@@ -3,20 +3,21 @@ package main
 import (
 	"testing"
 	"reflect"
+	"encoding/json"
 )
 
 func TestNode(t *testing.T) {
-	s1 := Str("s1")
-	c:= Coherent{&nArray{[]node{&s1,&StrZero}}}
-	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
+	s1 := MakeString("s1")
+	c:= &Coherent{&nArray{[]node{s1,StrZero}}}
+	root := &Coherent{&nArray{[]node{s1, StrZero, c}}}
 	
 	err := root.IsCoherent()
 	if (err != nil) {
-		t.Errorf("Want coherency : %s", err)
+		t.Errorf("Want coherency %v : %s", root, err)
 	}
-	s2 := Str("s2")
-	or:= OR{&nArray{[]node{&s1,&s2}}}
-	c = Coherent{&nArray{[]node{&or,&StrZero}}}
+	s2 := MakeString("s2")
+	or:= &OR{&nArray{[]node{s1,s2}}}
+	c = &Coherent{&nArray{[]node{or,StrZero}}}
 	err = c.IsCoherent()
 	if (err != nil) {
 		t.Errorf("Want coherency : %s", err)
@@ -24,26 +25,26 @@ func TestNode(t *testing.T) {
 }
 
 func TestCoherent(t *testing.T) {
-	s1 := Str("s1")
-	s2 := Str("s2")
-	c:= Coherent{&nArray{[]node{&s1,&StrZero}}}
-	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
-	or := OR{&nArray{[]node{&s1, &s2}}}
-	not := Not{&nArray{[]node{&s1}}}
-	root2 := Coherent{&nArray{[]node{&not,&s2}}}
-	root3 := Coherent{&nArray{[]node{&s1,&or}}}
-	root4 := Coherent{&nArray{[]node{&not,&or}}} // (non A) && (A || B)
-        neutralInt := leaf{reflect.ValueOf(-1)}
-	coherentInt := Coherent{&nArray{[]node{&neutralInt,&leaf{reflect.ValueOf(0)}}}}
+	s1 := MakeString("s1")
+	s2 := MakeString("s2")
+	c:= &Coherent{&nArray{[]node{s1,StrZero}}}
+	root := &Coherent{&nArray{[]node{s1, StrZero, c}}}
+	or := &OR{&nArray{[]node{s1, s2}}}
+	not := &Not{s1}
+	root2 := &Coherent{&nArray{[]node{not,s2}}}
+	root3 := &Coherent{&nArray{[]node{s1,or}}}
+	root4 := &Coherent{&nArray{[]node{not,or}}} // (non A) && (A || B)
+        neutralInt := &leaf{reflect.ValueOf(-1)}
+	coherentInt := &Coherent{&nArray{[]node{neutralInt,&leaf{reflect.ValueOf(0)}}}}
 	tables := []struct{ name string; n node;}{
-		{"root",&root},
-		{"c",&c},
-		{"or",&or},
-		{"root2",&root2},
-		{"root3",&root3},
-		{"root4",&root4},
-		{"intLiteral",&neutralInt},
-		{"coherentInt",&coherentInt},
+		{"root",root},
+		{"c",c},
+		{"or",or},
+		{"root2",root2},
+		{"root3",root3},
+		{"root4",root4},
+		{"intLiteral",neutralInt},
+		{"coherentInt",coherentInt},
 	}
 
 	for _, node := range tables {
@@ -55,18 +56,18 @@ func TestCoherent(t *testing.T) {
 }
 
 func TestNotCoherent(t *testing.T) {
-	s1 := Str("s1")
-	s2 := Str("s2")
-	c:= Coherent{&nArray{[]node{&s2,&StrZero}}}
-	root := Coherent{&nArray{[]node{&s1, &StrZero, &c}}}
-	not := Not{&s1}
-	root2 := Coherent{&nArray{[]node{&not,&s1}}}
-	intLiteral := leaf{reflect.ValueOf(3)}
-	incoherentInt := Coherent{&nArray{[]node{&intLiteral,&leaf{reflect.ValueOf(2)}}}}
+	s1 := &leaf{reflect.ValueOf("s1")}
+	s2 := &leaf{reflect.ValueOf("s2")}
+	c:= &Coherent{&nArray{[]node{s2,StrZero}}}
+	root := &Coherent{&nArray{[]node{s1, StrZero, c}}}
+	not := &Not{s1}
+	root2 := &Coherent{&nArray{[]node{not,s1}}}
+	intLiteral := &leaf{reflect.ValueOf(3)}
+	incoherentInt := &Coherent{&nArray{[]node{intLiteral,&leaf{reflect.ValueOf(2)}}}}
 	tables := []struct{ name string; n node;}{
-		{"root",&root},
-		{"root2",&root2},
-		{"incoherentInt",&incoherentInt},
+		{"root",root},
+		{"root2",root2},
+		{"incoherentInt",incoherentInt},
 	}
 
 	for _, node := range tables {
@@ -99,16 +100,21 @@ func TestIsNeutral(t *testing.T) {
 }
 
 func TestNStruct(t *testing.T) {
-	m := make(map[node]node)
-	k := Str("1")
-	k1 := Str("1")
-	m[k] = k
+	m := make(map[interface{}]struct{n node; key node})
+	k := MakeString("1")
+	k1 := MakeString("1")
+	m[k.AsKey()] = struct{n node; key node}{k,k}
 	//k2 := Str("2")
-	k22 := Str("2")
-	m[k22] = k22
+	k22 := MakeString("2")
+	m[k22.AsKey()] = struct{n node; key node}{k22,k22}
 	n := nStruct{m}
 
 	if n.get(k1) != k1 {
-		t.Errorf("get() error %v %v %v\n", k1, n, n.get(&k))
+		t.Errorf("get() error %v %v %v\n", k1, n, n.get(k1))
 	}
+}
+
+func prettyPrint(i interface{}) string {
+    s, _ := json.MarshalIndent(i, "", "\t")
+    return string(s)
 }
