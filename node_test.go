@@ -112,8 +112,8 @@ func TestNStruct(t *testing.T) {
 	//n := nStruct{m}
 
 	k1 := MakeString("1")
-	if m.get(k1) != k1 {
-		t.Errorf("get() error %v %v %v\n", k1, m, m.get(k1))
+	if m.get(k1).AsKey() != k1.AsKey() {
+		t.Errorf("get() error %#v %v %#v\n", k1, m, m.get(k1))
 	}
 }
 

@@ -313,7 +313,7 @@ func (n *nStructValue) String() string {
 func (n *nStruct) get(k node) node {
 	key := k.AsKey()
 	value := n.child[key]
-	debugPrintf("Struct get[%v] %v\n", key, value)
+	debugPrintf("Struct get[%v] %v\n", k, value.n)
 	return value.n
 }
 
@@ -450,7 +450,7 @@ func (a *nArray) AsKey() interface{} {
 	return a
 }
 
-var debug = true
+var debug = false
 func debugPrintf(format string, a ...interface{}) (n int, err error) {
 	if debug {
 		return fmt.Printf(format, a...)

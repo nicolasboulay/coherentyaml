@@ -97,7 +97,7 @@ func appendArrayWithKey(returnArrayNode []node, mapNode map[interface{}]nStructV
 	default: {
 		keyNode := &leaf{reflect.ValueOf(key)}
 		mapNode[keyNode.AsKey()] = struct { n node; key node} { valueNode, keyNode}
-		fmt.Printf(" -> %v %v\n", keyNode, valueNode)
+		//fmt.Printf(" -> %v %v\n", keyNode, valueNode)
 	}
 	}
 	return (returnArrayNode)
