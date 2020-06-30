@@ -41,7 +41,7 @@ func  BigUglySwitch(in interface{}) node {
 		return &nArray{a}
 	}
 	case reflect.Map: {
-		mapNode := make (map[interface{}]struct{n node;key node})
+		mapNode := make (map[interface{}]nStructValue)
 		var returnArrayNode []node
 		
 		iter := v.MapRange()
@@ -61,7 +61,7 @@ func  BigUglySwitch(in interface{}) node {
 		return &nArray{returnArrayNode}
 	}
 	case reflect.Struct:
-		mapNode := make(map[interface{}]struct{n node;key node})
+		mapNode := make(map[interface{}]nStructValue)
 		var returnArrayNode []node
 		for i := 0; i < v.NumField(); i++ {
 			if v.Field(i).CanInterface() {			
@@ -84,7 +84,7 @@ func  BigUglySwitch(in interface{}) node {
 }
 
 
-func appendArrayWithKey(returnArrayNode []node, mapNode map[interface{}]struct{n node;key node}, key string, value interface{}) []node {
+func appendArrayWithKey(returnArrayNode []node, mapNode map[interface{}]nStructValue, key string, value interface{}) []node {
 	valueNode := BigUglySwitch(value) 
 	switch key {
 	case "OR":

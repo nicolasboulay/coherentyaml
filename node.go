@@ -293,8 +293,18 @@ func (l *leaf) AsKey() interface{} {
 }
 
 type nStruct struct {
-	child map[interface{}] struct { n node; key node}
+	child map[interface{}] nStructValue
 }
+
+type nStructValue struct {
+	n node
+	key node
+}
+
+func (n *nStructValue) String() string {
+	return fmt.Sprintf("%v:%v ", n.key, n.n)
+}
+
 
 //todo : à complexifier par regexp possible
 // un type string se retrouve dans un leaf
@@ -306,6 +316,16 @@ func (n *nStruct) get(k node) node {
 	debugPrintf("Struct get[%v] %v\n", key, value)
 	return value.n
 }
+
+func (n *nStruct) set(k node, v node) {
+	key := k.AsKey()
+	if (n.child == nil) {
+		n.child = make(map[interface{}]nStructValue)
+	}
+	n.child[key] = struct{n node; key node}{v,k}
+}
+
+
 
 func (n *nStruct) IsCoherent() error {
 	for _,node := range n.child {

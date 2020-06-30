@@ -100,17 +100,20 @@ func TestIsNeutral(t *testing.T) {
 }
 
 func TestNStruct(t *testing.T) {
-	m := make(map[interface{}]struct{n node; key node})
+	m := nStruct{}
+	//m := make(map[interface{}]struct{n node; key node})
 	k := MakeString("1")
-	k1 := MakeString("1")
-	m[k.AsKey()] = struct{n node; key node}{k,k}
-	//k2 := Str("2")
+	
+	//m[k.AsKey()] = struct{n node; key node}{k,k}
+	m.set(k,k)
 	k22 := MakeString("2")
-	m[k22.AsKey()] = struct{n node; key node}{k22,k22}
-	n := nStruct{m}
+	//m[k22.AsKey()] = struct{n node; key node}{k22,k22}
+	m.set(k22,k22)
+	//n := nStruct{m}
 
-	if n.get(k1) != k1 {
-		t.Errorf("get() error %v %v %v\n", k1, n, n.get(k1))
+	k1 := MakeString("1")
+	if m.get(k1) != k1 {
+		t.Errorf("get() error %v %v %v\n", k1, m, m.get(k1))
 	}
 }
 
