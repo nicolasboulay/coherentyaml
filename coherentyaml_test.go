@@ -4,6 +4,7 @@ import (
 	"testing"
 	"fmt"
 	"reflect"
+	"github.com/goccy/go-yaml"
 )
 func TestIso(t *testing.T) {
 	tables := []string {
@@ -324,6 +325,22 @@ func TestModusTollens(t *testing.T) {
 	err := node.IsCoherent()
 	if (err != nil) {
 		fmt.Printf("modusTollens :\n %v\n", node)
+		t.Errorf("Want coherency : %s\n", err)
+		yamlString,_ := yaml.Marshal(node)
+		fmt.Printf("yaml :\n %v\n", yamlString)
+	}
+}
+
+// Not IsCoherentWith  ~[{a:2 }]   ( ~[{a:2 }]  | {a:2 } ): false
+func TestModusTollensPart(t *testing.T) {
+	var ast Ast
+	ast.Read([]byte("a: 2"))
+	nodeA := BigUglySwitch(ast.Interface())
+
+	node := yand(yor(ynot(nodeA),nodeA),ynot(nodeA))
+	err := node.IsCoherent()
+	if (err != nil) {
+		fmt.Printf("modusTollensPart :\n %v\n", node)
 		t.Errorf("Want coherency : %s\n", err)
 	}
 }

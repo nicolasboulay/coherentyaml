@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-// plusieurs fichiers peuvent lu, ils deiennes un seul node avec un Coherent comme racine
+// plusieurs fichiers peuvent lu, ils deviennent un seul node avec un Coherent comme racine
 // de base, coherentyaml, ne retourne rien.
 // en cas d'erreur, le programme retourne la contradiction et sa position
 
