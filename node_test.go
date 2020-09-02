@@ -4,6 +4,8 @@ import (
 	"testing"
 	"reflect"
 	"encoding/json"
+	"github.com/goccy/go-yaml"
+	"fmt"
 )
 
 func TestNode(t *testing.T) {
@@ -22,6 +24,18 @@ func TestNode(t *testing.T) {
 	if (err != nil) {
 		t.Errorf("Want coherency : %s", err)
 	}
+}
+
+func TestMarshal(t *testing.T) {
+	s1 := MakeString("s1")
+	c:= &Coherent{&nArray{[]node{s1,StrZero}}}
+	root := &OR{&nArray{[]node{s1, &Coherent{&nArray{[]node{s1, StrZero, c}}},s1}}}
+	
+	yamlString,_ := yaml.Marshal(root)
+	fmt.Printf("yaml :\n %s\n", yamlString)
+	// Output:
+	// 
+	// 
 }
 
 func TestCoherent(t *testing.T) {

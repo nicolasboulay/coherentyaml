@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-		"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml"
 )
 
 type node interface {
@@ -14,6 +14,7 @@ type node interface {
 	String() string
 	IsOperator() bool
 	AsKey() interface{}
+	MarshalYAML() (interface{}, error)
 }
 
 type OR struct {
@@ -75,7 +76,7 @@ func (o *OR) AsKey() interface{} {
 
 func (o *OR) MarshalYAML() (interface{}, error) {
 	return yaml.MapSlice{
-		{"Or", o.child},
+		{Key: "Or", Value:o.child},
 	}, nil
 }
 
@@ -136,6 +137,12 @@ func (c *Coherent) AsKey() interface{} {
 	return c
 }
 
+func (c *Coherent) MarshalYAML() (interface{}, error) {
+	return yaml.MapSlice{
+		{Key: "Coherent", Value:c.child},
+	}, nil
+}
+
 type Not struct {
 	child node
 }
@@ -194,6 +201,12 @@ func (*Not) IsOperator() bool {
 
 func (n *Not) AsKey() interface{} {
 	return n
+}
+
+func (n *Not) MarshalYAML() (interface{}, error) {
+	return yaml.MapSlice{
+		{Key: "Not", Value:n.child},
+	}, nil
 }
 
 // it could be a leaf but string are common, special case could be handle
@@ -299,6 +312,10 @@ func (l *leaf) AsKey() interface{} {
 	return l.value.Interface()
 }
 
+func (l *leaf) MarshalYAML() (interface{}, error) {
+	return l.value.Interface(), nil
+}
+
 type nStruct struct {
 	child map[interface{}] nStructValue
 }
@@ -331,8 +348,6 @@ func (n *nStruct) set(k node, v node) {
 	}
 	n.child[key] = struct{n node; key node}{v,k}
 }
-
-
 
 func (n *nStruct) IsCoherent() error {
 	for _,node := range n.child {
@@ -396,6 +411,14 @@ func (n *nStruct) AsKey() interface{} {
 	return n
 }
 
+func (n *nStruct) MarshalYAML() (interface{}, error) {
+	var ret yaml.MapSlice
+	for _, element := range n.child {
+		ret = append(ret,yaml.MapItem{Key: element.key.String(), Value: element.n})
+	}
+	return ret, nil
+}
+
 type nArray struct {
 	child []node
 }
@@ -457,7 +480,11 @@ func (a *nArray) AsKey() interface{} {
 	return a
 }
 
-var debug = true
+func (a *nArray) MarshalYAML() (interface{}, error) {
+	return a.child, nil
+}
+
+var debug = false
 func debugPrintf(format string, a ...interface{}) (n int, err error) {
 	if debug {
 		return fmt.Printf(format, a...)

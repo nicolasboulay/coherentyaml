@@ -2,9 +2,8 @@ package main
 
 import (
 	"testing"
-	"fmt"
+	//"fmt"
 	"reflect"
-	"github.com/goccy/go-yaml"
 )
 func TestIso(t *testing.T) {
 	tables := []string {
@@ -117,7 +116,7 @@ a:
 		err := node1.IsCoherentWith(node2) 
 		if nil != err {
 			t.Errorf("Want coherency %v : %s\n%#v\n%#v\n", i, err, node1, node2)
-			fmt.Printf(" %s\n %s\n %v\n %v\n", yml.s1, yml.s2,ast1.Interface(), ast2.Interface())
+			//fmt.Printf(" %s\n %s\n %v\n %v\n", yml.s1, yml.s2,ast1.Interface(), ast2.Interface())
 
 		}
 	}
@@ -285,16 +284,16 @@ func TestCalculDeProposition(t *testing.T) {
 		ast.Read([]byte(A))
 		nodeA := BigUglySwitch(ast.Interface())
 		
-		for i, B := range possible_set {
+		for _, B := range possible_set {
 
 			ast.Read([]byte(B))
 			nodeB := BigUglySwitch(ast.Interface())
 
-			for _,f :=  range relation {
+			for i,f :=  range relation {
 				node := f(nodeA, nodeB)
 				err := node.IsCoherent()
 				if (err != nil) {
-					t.Errorf("Want coherency in %s %v %v : %s", relationString[i], nodeA, nodeB, err)
+					t.Errorf("Want coherency in %s %v %v : %s\n", relationString[i], nodeA, nodeB, err)
 				}
 			}
 			break
@@ -324,10 +323,10 @@ func TestModusTollens(t *testing.T) {
 	node := ModusTollens(nodeA, nodeB)
 	err := node.IsCoherent()
 	if (err != nil) {
-		fmt.Printf("modusTollens :\n %v\n", node)
-		t.Errorf("Want coherency : %s\n", err)
-		yamlString,_ := yaml.Marshal(node)
-		fmt.Printf("yaml :\n %v\n", yamlString)
+		//fmt.Printf("modusTollens :\n %v\n", node)
+		t.Errorf("Want coherency : %s\n %v\n", err, node)
+		//yamlString,_ := yaml.Marshal(node)
+		//fmt.Printf("yaml :\n %v\n", yamlString)
 	}
 }
 
@@ -340,8 +339,8 @@ func TestModusTollensPart(t *testing.T) {
 	node := yand(yor(ynot(nodeA),nodeA),ynot(nodeA))
 	err := node.IsCoherent()
 	if (err != nil) {
-		fmt.Printf("modusTollensPart :\n %v\n", node)
-		t.Errorf("Want coherency : %s\n", err)
+		//fmt.Printf("modusTollensPart :\n %v\n", node)
+		t.Errorf("Want coherency : %s\n %v\n", err, node)
 	}
 }
 
