@@ -8,6 +8,11 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
+func toYAMLString(root node) string {
+	yamlString,_ := yaml.Marshal(root)
+	return string(yamlString)
+}
+
 type node interface {
 	IsCoherent() error
 	IsCoherentWith(n node) error
@@ -30,30 +35,32 @@ func (or *OR) GetChild() []node {
 }
 
 func (or *OR) IsCoherent() error {
+	debugPrintfStart("OR IsCoherent %v : true\n", or)
 	children := or.GetChild()
 	for _, child := range children {
 		err := child.IsCoherent()
 		if (err == nil) {
-			debugPrintf("OR IsCoherent %v : true\n", or)
+			debugPrintfEnd("OR IsCoherent %v : true\n", or)
 			return nil
 		}
 
 	}
-	debugPrintf("OR IsCoherent %v : false\n", or)
+	debugPrintfEnd("OR IsCoherent %v : false\n", or)
 	return fmt.Errorf("OR %v is not coherent", children)
 }
 
 func (or *OR) IsCoherentWith(n node) error {
+	debugPrintfStart("OR IsCoherentWith %v    %v : true\n", or,n)
 	children := or.GetChild()
 	var err error
 	for _, child := range children {
 		err = child.IsCoherentWith(n)
 		if (err == nil) {
-			debugPrintf("OR IsCoherentWith %v    %v : true\n", or,n)
+			debugPrintf( "OR IsCoherentWith %v    %v : true\n", or,n)
 			return nil
 		}
 	}
-	debugPrintf("OR IsCoherentWith %v    %v : false\n", or, n)
+	debugPrintfEnd("OR IsCoherentWith %v    %v : false\n", or, n)
 	return fmt.Errorf("OR is not coherent with : %v", err)
 }
 
@@ -74,9 +81,20 @@ func (o *OR) AsKey() interface{} {
 	return o
 }
 
+func bold(s string ) string {
+	return "\033[1m" + s + "\033[0m"
+}
+
+func keyS(n node, s string) string {
+	if (n.IsCoherent() == nil){
+		s = bold(s)
+	}
+	return s
+}
+
 func (o *OR) MarshalYAML() (interface{}, error) {
 	return yaml.MapSlice{
-		{Key: "Or", Value:o.child},
+		{Key: keyS(o, "Or"), Value:o.child},
 	}, nil
 }
 
@@ -93,30 +111,34 @@ func (c *Coherent) GetChild() []node {
 }
 
 func (c *Coherent) IsCoherent() error {
+	debugPrintfStart("Coherent IsCoherent %v :\n", c)
 	children := c.GetChild()
 	for _, child := range children {
 		for _, child2 := range children {
 			err := child.IsCoherentWith(child2) 
 			if (err != nil) {
-				return child2.IsCoherentWith(child)
+				ret := child2.IsCoherentWith(child)
+				debugPrintfEnd("Coherent IsCoherent %v : %v\n", c, ret)
+				return ret
 			}
 		}
 	}	
-	debugPrintf("Coherent IsCoherent %v : true\n", c)
-
+	debugPrintfEnd("Coherent IsCoherent %v : true\n", c)
 	return nil
 }
 
 func (c *Coherent) IsCoherentWith(n node) error {
+	debugPrintfStart("Coherent IsCoherentWith %v  %v :\n", c, n)
 	children := c.GetChild()
 	var err error 
 	for _, child := range children {
 		err = child.IsCoherentWith(n) 
 		if (err != nil) {
+			debugPrintfEnd("Coherent IsCoherentWith %v  %v : false\n", c, n)
 			return fmt.Errorf("%v is not coherent with %v : %v",c,n,err)
 		}
 	}
-	debugPrintf("Coherent IsCoherentWith %v  %v : true\n", c, n)
+	debugPrintfEnd("Coherent IsCoherentWith %v  %v : true\n", c, n)
 	return nil
 }
 
@@ -139,7 +161,7 @@ func (c *Coherent) AsKey() interface{} {
 
 func (c *Coherent) MarshalYAML() (interface{}, error) {
 	return yaml.MapSlice{
-		{Key: "Coherent", Value:c.child},
+		{Key: keyS(c,"Coherent"), Value:c.child},
 	}, nil
 }
 
@@ -156,11 +178,13 @@ func (n *Not) GetChild() []node {
 }
 
 func (n *Not) IsCoherent() error {
+	debugPrintfStart("Not IsCoherent %v :\n", n)
 	err := n.child.IsCoherent()
 	if (err != nil) {
+		debugPrintfEnd("Not IsCoherent %v : true\n", n)
 		return nil
 	}
-	debugPrintf("Not IsCoherent %v : false\n", n)
+	debugPrintfEnd("Not IsCoherent %v : false\n", n)
 	return fmt.Errorf("Not is not coherent '%v'",n.child)
 }
 
@@ -173,21 +197,23 @@ func (n *Not) IsCoherent() error {
 // vs "The sky is blue and not the weather is nice"
 
 func (n *Not) IsCoherentWith(o node) error {
+	debugPrintfStart("Not IsCoherentWith %v  %v:\n", n, o)
 	if n.child.IsOperator() { // proposal
 		err1 := n.IsCoherent()
 		err2 := o.IsCoherent()	
 		if (err1 == nil && err2 == nil) {
-			debugPrintf("Not IsCoherentWith %v  %v: true (proposal)\n", n, o)
+			debugPrintfEnd("Not IsCoherentWith %v  %v: true (proposal)\n", n, o)
 			return nil
 		}
-	} else { // incomplete proposal
+	} else { // incomplete proposal is always true
 		err := n.child.IsCoherentWith(o)
 		if (err != nil) {
-			debugPrintf("Not IsCoherentWith %v  %v : true (part) %v\n", n, o , err)
+			debugPrintfEnd("Not IsCoherentWith %v  %v : true (part) %v\n", n, o , err)
 			return nil
 		}
+		return nil
 	}
-	debugPrintf("Not IsCoherentWith %v  %v: false\n", n, o)
+	debugPrintfEnd("Not IsCoherentWith %v  %v: false\n", n, o)
 	return fmt.Errorf("Not, Both node should be different %v vs %v", n, o) 
 }
 
@@ -205,7 +231,7 @@ func (n *Not) AsKey() interface{} {
 
 func (n *Not) MarshalYAML() (interface{}, error) {
 	return yaml.MapSlice{
-		{Key: "Not", Value:n.child},
+		{Key: keyS(n,"Not"), Value:n.child},
 	}, nil
 }
 
@@ -255,7 +281,7 @@ func (l *leaf) IsCoherent() error {
 	return nil
 }
 
-func (l *leaf) IsCoherentWith(n node) error {
+func (l *leaf) IsCoherentWith(n node) error {	
 	l2, ok := n.(*leaf);
 	if (!ok) {
 		//case with OR/Not/Coherency/.. in between
@@ -337,7 +363,7 @@ func (n *nStructValue) String() string {
 func (n *nStruct) get(k node) node {
 	key := k.AsKey()
 	value := n.child[key]
-	debugPrintf("Struct get[%v] %v\n", k, value.n)
+	debugPrintfIn("Struct get[%v] %v\n", k, value.n)
 	return value.n
 }
 
@@ -350,17 +376,20 @@ func (n *nStruct) set(k node, v node) {
 }
 
 func (n *nStruct) IsCoherent() error {
+	debugPrintfStart("Struct IsCoherent %v :\n", n)
 	for _,node := range n.child {
 		err := node.key.IsCoherent()
 		if (err != nil) {
+			debugPrintfEnd("Struct IsCoherent %v : false\n", n)
 			return fmt.Errorf("Struct is not coherent, key is %v : %v",node.key, err)
 		}
 		err = node.n.IsCoherent()
 		if (err != nil) {
+			debugPrintfEnd("Struct IsCoherent %v : false\n", n)
 			return fmt.Errorf("Struct is not coherent, [%v] valuse is %v: %v ",node.key, node.n, err)
 		}
 	}
-	//debugPrintf("Struct IsCoherent %v : true\n", n)
+	debugPrintfEnd("Struct IsCoherent %v : true\n", n)
 	return nil
 }
 // une struct est coherent avec une autre si les champs présent sont coherent entre eux.
@@ -370,13 +399,14 @@ func (n *nStruct) IsCoherent() error {
 // (ex: avec regexp, si plusieurs match les faire du plus particluiers au plus général, coherent: {{...},{ ..., "*": nil})
 // si une clef est absente d'un coté, ce n'est pas grave.
 func (n *nStruct) IsCoherentWith(n2 node) error {
+	debugPrintfStart("Struct IsCoherentWith %v  %v :\n", n, n2)
 	s2, ok := n2.(*nStruct)
 	if !ok {
 		//return fmt.Errorf("Structure needed, %v vs %v\n", n, n2)
 		if n2.IsOperator() {
 			return n2.IsCoherentWith(n)
 		} else {
-			debugPrintf("Struct IsCoherentWith %v  %v : false\n", n, n2)
+			debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", n, n2)
 			return fmt.Errorf("Struct %v is not coherent with %v ",n, n2)
 		}
 	}
@@ -387,11 +417,11 @@ func (n *nStruct) IsCoherentWith(n2 node) error {
 		}
 		err := v2.IsCoherentWith(element.n)
 		if err != nil {
-			debugPrintf("Struct IsCoherentWith %v  %v : false\n", n, n2)
+			debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", n, n2)
 			return fmt.Errorf("Struct %v is not coherent with %v : %v",v2, element.n, err)
 		}
 	}
-	debugPrintf("Struct IsCoherentWith %v  %v : true\n", n, n2)
+	debugPrintfEnd("Struct IsCoherentWith %v  %v : true\n", n, n2)
 	return nil
 }
 
@@ -414,7 +444,7 @@ func (n *nStruct) AsKey() interface{} {
 func (n *nStruct) MarshalYAML() (interface{}, error) {
 	var ret yaml.MapSlice
 	for _, element := range n.child {
-		ret = append(ret,yaml.MapItem{Key: element.key.String(), Value: element.n})
+		ret = append(ret,yaml.MapItem{Key: keyS(n,element.key.String()), Value: element.n})
 	}
 	return ret, nil
 }
@@ -424,14 +454,16 @@ type nArray struct {
 }
 
 func (a *nArray) IsCoherent() error {
+	debugPrintfStart("Array IsCoherent %v :\n", a)
 	for _,node := range a.child {
 		err := node.IsCoherent()
 		if (err != nil) {
+			debugPrintfEnd("Array IsCoherent %v : false\n", a)
 			return fmt.Errorf("Array is not coherent, %v : %v",node, err)
 			
 		}
 	}
-	debugPrintf("Array IsCoherent %v : true\n", a)
+	debugPrintfEnd("Array IsCoherent %v : true\n", a)
 	return nil
 }
 
@@ -440,6 +472,7 @@ func (a *nArray) IsCoherent() error {
 // multiplicity are not defined, 
 // 
 func (a *nArray) IsCoherentWith(n2 node) error {
+	debugPrintfStart("Array IsCoherentWith %v  %v : true\n",a,n2)
 	a2, ok := n2.(*nArray)
 	if !ok {
 		return n2.IsCoherentWith(a)
@@ -456,11 +489,11 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 			}
 		}
 		if (!ok) {
+			debugPrintfEnd("Array IsCoherentWith %v  %v : false\n",a,n2)
 			return fmt.Errorf("'Array' value should match without order :\n%v\n%v",a,n2)
 		}
-
 	}
-	debugPrintf("Array IsCoherentWith %v  %v : true\n",a,n2)
+	debugPrintfEnd("Array IsCoherentWith %v  %v : true\n",a,n2)
 	return nil
 }
 
@@ -491,5 +524,22 @@ func debugPrintf(format string, a ...interface{}) (n int, err error) {
 	}
 	return 0, nil
 }
+
+var debugSpaceNum = 0
+func debugPrintfStart(format string, a ...interface{}) (n int, err error) {
+	n,err = debugPrintfIn(format, a...)
+	debugSpaceNum++
+	return n, err
+}
+func debugPrintfIn(format string, a ...interface{}) (n int, err error) {
+	n,err = debugPrintf(strings.Repeat(" ", debugSpaceNum) + format, a...)
+	return n, err
+}
+func debugPrintfEnd(format string, a ...interface{}) (n int, err error) {
+	debugSpaceNum--
+	n,err = debugPrintfIn(format, a...)
+	return n, err
+}
+
 
 

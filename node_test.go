@@ -32,10 +32,20 @@ func TestMarshal(t *testing.T) {
 	root := &OR{&nArray{[]node{s1, &Coherent{&nArray{[]node{s1, StrZero, c}}},s1}}}
 	
 	yamlString,_ := yaml.Marshal(root)
-	fmt.Printf("yaml :\n %s\n", yamlString)
-	// Output:
-	// 
-	// 
+	fmt.Printf("yaml :\n%s\n", yamlString)
+	//
+	// Output :
+	//
+        // yaml :
+        //  Or:
+        // - s1
+        // - Coherent:
+        //   - s1
+        //   - ""
+        //   - Coherent:
+        //     - s1
+        //     - ""
+        // - s2
 }
 
 func TestCoherent(t *testing.T) {

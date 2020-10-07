@@ -2,7 +2,7 @@ package main
 
 import (
 	"testing"
-	//"fmt"
+	"fmt"
 	"reflect"
 )
 func TestIso(t *testing.T) {
@@ -143,6 +143,168 @@ func TestShallNotMatch(t *testing.T) {
 	}
 }
 
+func TestByList(t *testing.T) {
+	tables := []struct {s string; expected bool; com string} {
+		{"a: 2", true, "partial proposal"},
+		{"Not: {a: 2}", true, "partial proposal"}, 
+		{`Coherent:
+- {a: 2}
+- {a: 3}
+`, false, "basic type check"},
+{`Coherent:
+- a: 2
+- Not: 
+    a: 2
+`, false, "'Not' inside"},
+{`Coherent:
+- a: 2
+- Not: 
+    Coherent: 
+      - a: 2
+      - a: 1
+`, false, "2 level checks"},
+{`Coherent:
+- a: 3
+- Not: 
+    Coherent: 
+      - a: 2
+      - a: 1
+`, true, "2 levels checks"},
+		{`Coherent:
+- a: 2
+- Not: 
+    Coherent: 
+      - a: 2
+      - Not:
+           a: 3
+`, true, "2 levels check with Not"},
+				{`Coherent:
+- a: 3
+- Not: 
+    Coherent: 
+      - a: 2
+      - Not:
+           a: 3
+`, false, "2 levels check with not"},
+						{`Coherent:
+- a: 3
+  b: 
+     c: "plip"
+     d: 2 
+     e: "ploup"
+- a: 1
+  b:
+     c: ""
+     d: 2
+     e: 
+        OR: 
+        - "plop"
+        - "ploup"
+`, true, "data + simple schema example"},
+		{`Coherent:
+- a: 3
+  b: 
+     c: "plip"
+     d: 2 
+     e: "plup"
+- a: 1
+  b:
+     c: ""
+     d: 2
+     e: 
+        OR: 
+        - "plop"
+        - "ploup"
+`, false, "data + simple schema example"},
+		{`Coherent:
+- a: 3
+- a: 3
+- a: 1
+`, true, "data + schema + a type in the data"},
+								{`Coherent:
+- a: "ploup"
+- a: 
+   Not: "ploup"
+`, false, "not oddities"},
+								{`Coherent:
+- a: "plop"
+- a: 
+   Not: "ploup"
+`, true, "not oddities"},
+		{`Coherent:
+- a: "ploup"
+- a: 
+    OR: 
+     - Not: "ploup"
+     - Not: "Plip"
+`, false, "not/or oddities"},
+		{`Coherent:
+- a: "plop"
+- a: 
+    OR: 
+     - Not: "ploup"
+     - Not: "Plip"
+`, true, "not/or oddities"},
+				{`Coherent:
+- a: "plop"
+- a: 
+    Not:
+      OR: 
+       - "ploup"
+       - "Plip"
+`, true, "not/or oddities"},
+						{`Coherent:
+- a: "ploup"
+- a: 
+    Not:
+      OR: 
+       - "ploup"
+       - "Plip"
+`, false, "not or oddities"},
+		{`Coherent:
+- a: "plop"
+- a: 
+    Coherent: 
+     - Not: "ploup"
+     - Not: "Plip"
+`, true, "not/and oddities"},
+		{`Coherent:
+- a: "ploup"
+- a: 
+    Coherent: 
+     - Not: "ploup"
+     - Not: "Plip"
+`, false, "not/and oddities"},
+		{`Coherent:
+- a: "ploup"
+- a: 
+    Not: 
+     Or:
+       - "ploup"
+       - Not: "Plip"
+`, false, "not/and oddities"},
+				{`Coherent:
+- a: "ploup"
+- a: 
+    Not: 
+     Coherent:
+       - "ploup"
+       - Not: "Plip"
+`, false, "not/and oddities"},		
+		
+	}
+
+	for _, yml := range tables {
+		var ast1 Ast
+		ast1.Read([]byte(yml.s))
+		node1 := BigUglySwitch(ast1.Interface())
+		err := node1.IsCoherent()
+		if (nil == err) != yml.expected { 
+			t.Fatalf("%s :\nShould be %v (%v):\n%v\n", yml.com, yml.expected, err, toYAMLString(node1))
+		}
+	}
+}
+
 var possible_set []string = []string{
 		"a: 2",
 		"a: toto",
@@ -218,7 +380,7 @@ func TestCalculDePropositionTheorem(t *testing.T) {
 			err := node.IsCoherent()
 			//fmt.Printf("%v -> %v : %v\n", nodeA, node, err)
 			if (err != nil) {
-				t.Errorf("Want coherency in %s : %s", node, err)
+				t.Errorf("Want coherency in %s : %s", toYAMLString(node), err)
 			}
 		}
 		break
@@ -324,7 +486,7 @@ func TestModusTollens(t *testing.T) {
 	err := node.IsCoherent()
 	if (err != nil) {
 		//fmt.Printf("modusTollens :\n %v\n", node)
-		t.Errorf("Want coherency : %s\n %v\n", err, node)
+		t.Errorf("Want coherency : %s\n %v\n", err, toYAMLString(node))
 		//yamlString,_ := yaml.Marshal(node)
 		//fmt.Printf("yaml :\n %v\n", yamlString)
 	}
@@ -342,6 +504,83 @@ func TestModusTollensPart(t *testing.T) {
 		//fmt.Printf("modusTollensPart :\n %v\n", node)
 		t.Errorf("Want coherency : %s\n %v\n", err, node)
 	}
+}
+
+func TestIncompleteProposal(t * testing.T) {
+	yamlString := `
+
+ a: 
+  Not:
+    b:
+      Coherent:
+      - 2
+      - 3 
+    c: 4
+`
+	var ast Ast
+	ast.Read([]byte(yamlString))
+	yamlNode := BigUglySwitch(ast.Interface())
+	err := yamlNode.IsCoherent()
+	if (err != nil) {
+		t.Errorf("Want coherency : %v\n%s\n", err,toYAMLString(yamlNode))
+	}
+	//fmt.Printf("incompleteProposal :\n%s\n", toYAMLString(yamlNode))
+}
+
+func TestIncompleteProposal2(t * testing.T) {
+	yamlString := `
+ a: 
+  Not:
+    b:
+      Coherent:
+      - 3
+      - 3 
+    cccc: 4
+`
+	var ast Ast
+	ast.Read([]byte(yamlString))
+	yamlNode := BigUglySwitch(ast.Interface())
+	err := yamlNode.IsCoherent()
+	if (err == nil) {
+		t.Errorf("Want INcoherency : \n%s\n", toYAMLString(yamlNode))
+	}
+	//fmt.Printf("incompleteProposal :\n%s\n", toYAMLString(yamlNode))
+}
+
+func TestStructure(t * testing.T) {
+	yamlString := `
+ Coherent: 
+  - Not:
+     b: 3
+     c: 4
+  - b: 3 
+    c: 4
+`
+	var ast Ast
+	ast.Read([]byte(yamlString))
+	yamlNode := BigUglySwitch(ast.Interface())
+	err := yamlNode.IsCoherent()
+	if (err == nil) {
+		t.Errorf("Want INcoherency : \n%s\n", toYAMLString(yamlNode))
+	}
+	fmt.Printf("incompleteProposal :\n%s\n", toYAMLString(yamlNode))
+}
+
+func TestStructure2(t * testing.T) {
+	yamlString := `
+ Coherent: 
+  - Not:
+     b: 3
+  - b: 3 
+`
+	var ast Ast
+	ast.Read([]byte(yamlString))
+	yamlNode := BigUglySwitch(ast.Interface())
+	err := yamlNode.IsCoherent()
+	if (err == nil) {
+		t.Errorf("Want INcoherency : \n%s\n", toYAMLString(yamlNode))
+	}
+	fmt.Printf("incompleteProposal :\n%s\n", toYAMLString(yamlNode))
 }
 
 func yor(a node, b node) node {
