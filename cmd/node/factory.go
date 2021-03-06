@@ -1,4 +1,4 @@
-package main
+package node
 
 import (
 	"reflect"
@@ -21,7 +21,7 @@ import (
 	//Interface
 	//Ptr
 	//UnsafePointer	
-func  BigUglySwitch(in interface{}) node {
+func  BigUglySwitch(in interface{}) Node {
 	v := reflect.ValueOf(in)
 	switch v.Kind() {
 	case reflect.Bool,
@@ -29,20 +29,20 @@ func  BigUglySwitch(in interface{}) node {
 	     reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64,
 	     reflect.Float32, reflect.Float64,
 	     reflect.String:
-		return &leaf{v}
+		return &Leaf{v}
 	case reflect.Slice, reflect.Array: {
-		var a []node
+		var a []Node
 		for i := 0; i < v.Len(); i++ {
 			elem := v.Index(i)
 			n := BigUglySwitch(elem.Interface())		
 			a = append(a, n)		
 			//	typeOfT.Field(i).Name, f.Type(), f.Interface())
 		}
-		return &nArray{a}
+		return &NArray{a}
 	}
 	case reflect.Map: {
-		mapNode := make (map[interface{}]nStructValue)
-		var returnArrayNode []node
+		mapNode := make (map[interface{}]NStructValue)
+		var returnArrayNode []Node
 		
 		iter := v.MapRange()
 		for iter.Next() {
@@ -53,16 +53,16 @@ func  BigUglySwitch(in interface{}) node {
 			}			
 		}
 		if len (mapNode) != 0 {
-			returnArrayNode = append(returnArrayNode,&nStruct{mapNode})
+			returnArrayNode = append(returnArrayNode,&NStruct{mapNode})
 		}
 		if len (returnArrayNode) == 1 {
 			return returnArrayNode[0]
 		}
-		return &nArray{returnArrayNode}
+		return &NArray{returnArrayNode}
 	}
 	case reflect.Struct:
-		mapNode := make(map[interface{}]nStructValue)
-		var returnArrayNode []node
+		mapNode := make(map[interface{}]NStructValue)
+		var returnArrayNode []Node
 		for i := 0; i < v.NumField(); i++ {
 			if v.Field(i).CanInterface() {			
 				fieldName := v.Type().Field(i).Name
@@ -71,12 +71,12 @@ func  BigUglySwitch(in interface{}) node {
 			}
 		}
 		if len (mapNode) != 0 {
-			returnArrayNode = append(returnArrayNode,&nStruct{mapNode})
+			returnArrayNode = append(returnArrayNode,&NStruct{mapNode})
 		}
 		if len (returnArrayNode) == 1 {
 			return returnArrayNode[0]
 		}
-		return &nArray{returnArrayNode}
+		return &NArray{returnArrayNode}
 	default:
 		fmt.Printf("\n%v\n",v)
 	}
@@ -84,7 +84,7 @@ func  BigUglySwitch(in interface{}) node {
 }
 
 
-func appendArrayWithKey(returnArrayNode []node, mapNode map[interface{}]nStructValue, key string, value interface{}) []node {
+func appendArrayWithKey(returnArrayNode []Node, mapNode map[interface{}]NStructValue, key string, value interface{}) []Node {
 	valueNode := BigUglySwitch(value) 
 	switch key {
 	case "OR":
@@ -95,14 +95,14 @@ func appendArrayWithKey(returnArrayNode []node, mapNode map[interface{}]nStructV
 		returnArrayNode = append(returnArrayNode,&Not{valueNode})
 	}
 	default: {
-		keyNode := &leaf{reflect.ValueOf(key)}
-		mapNode[keyNode.AsKey()] = struct { n node; key node} { valueNode, keyNode}
+		keyNode := &Leaf{reflect.ValueOf(key)}
+		mapNode[keyNode.AsKey()] = struct { n Node; key Node} { valueNode, keyNode}
 		//fmt.Printf(" -> %v %v\n", keyNode, valueNode)
 	}
 	}
 	return (returnArrayNode)
 }
 
-func MakeString(s string) node {
-	return &leaf{reflect.ValueOf(s)}
+func MakeString(s string) Node {
+	return &Leaf{reflect.ValueOf(s)}
 }

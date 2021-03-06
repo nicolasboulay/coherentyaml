@@ -1,4 +1,4 @@
-package main
+package node
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ import (
 //		OR []string
 //	}{[]string{"astring"}}
 //
-//	expected := &OR{[]node{("astring")}}
+//	expected := &OR{[]Node{("astring")}}
 //
 //	node := Choose("OR").New(dut.OR)
 //	if node != expected {
@@ -26,7 +26,7 @@ func TestBigUglySwitch(t *testing.T) {
 	
 	dut := "astring"
 
-	expected := &leaf{reflect.ValueOf("astring")}
+	expected := &Leaf{reflect.ValueOf("astring")}
 
 	node := BigUglySwitch(dut)
 	if nil != node.IsCoherentWith(expected) {
@@ -43,11 +43,11 @@ func TestBigUglySwitchTable(t *testing.T) {
 	testMap["Coherent"] = []int{2,2}
 	testMap["OR"] = []int{1,2}
 	testMap["Not"] = 2
-	testMapNode1 := &nArray{[]node{&leaf{reflect.ValueOf(2)},&leaf{reflect.ValueOf(1)}}}
+	testMapNode1 := &NArray{[]Node{&Leaf{reflect.ValueOf(2)},&Leaf{reflect.ValueOf(1)}}}
 	testMapCoherent  := &Coherent{testMapNode1}
 	testMapOR  := &OR{testMapNode1}
-	testMapNot  := &Not{&leaf{reflect.ValueOf(1)}}
-	testMapNode := &nArray{[]node{testMapCoherent,testMapOR,testMapNot}}
+	testMapNot  := &Not{&Leaf{reflect.ValueOf(1)}}
+	testMapNode := &NArray{[]Node{testMapCoherent,testMapOR,testMapNot}}
 
 	testStruct := struct {
 		Coherent []int
@@ -55,17 +55,17 @@ func TestBigUglySwitchTable(t *testing.T) {
 		Not int
 	} { []int{2,2}, []int{1,2}, 2,}
 	
-	tables := []struct{ dut interface{}; expected node;}{
-		{"astring",&leaf{reflect.ValueOf("astring")}},
-		{2,&leaf{reflect.ValueOf(2)}},
-		{2.0,&leaf{reflect.ValueOf(2.0)}},
-		{float32(2.0),&leaf{reflect.ValueOf(float32(2.0))}},
-		{[]int{2},&nArray{[]node{&leaf{reflect.ValueOf(2)}}}},
-		{[]int{2,3},&nArray{[]node{&leaf{reflect.ValueOf(2)},&leaf{reflect.ValueOf(3)}}}},
-		{[]int{2,3},&nArray{[]node{&leaf{reflect.ValueOf(3)},&leaf{reflect.ValueOf(2)}}}},
-		{[]int{-1,3},&nArray{[]node{&leaf{reflect.ValueOf(3)},&leaf{reflect.ValueOf(2)},&leaf{reflect.ValueOf(4)}}}},
-		{[][]int{{2,3}},&nArray{[]node{&nArray{[]node{
-			&leaf{reflect.ValueOf(2)},&leaf{reflect.ValueOf(3)}}}}}},
+	tables := []struct{ dut interface{}; expected Node;}{
+		{"astring",&Leaf{reflect.ValueOf("astring")}},
+		{2,&Leaf{reflect.ValueOf(2)}},
+		{2.0,&Leaf{reflect.ValueOf(2.0)}},
+		{float32(2.0),&Leaf{reflect.ValueOf(float32(2.0))}},
+		{[]int{2},&NArray{[]Node{&Leaf{reflect.ValueOf(2)}}}},
+		{[]int{2,3},&NArray{[]Node{&Leaf{reflect.ValueOf(2)},&Leaf{reflect.ValueOf(3)}}}},
+		{[]int{2,3},&NArray{[]Node{&Leaf{reflect.ValueOf(3)},&Leaf{reflect.ValueOf(2)}}}},
+		{[]int{-1,3},&NArray{[]Node{&Leaf{reflect.ValueOf(3)},&Leaf{reflect.ValueOf(2)},&Leaf{reflect.ValueOf(4)}}}},
+		{[][]int{{2,3}},&NArray{[]Node{&NArray{[]Node{
+			&Leaf{reflect.ValueOf(2)},&Leaf{reflect.ValueOf(3)}}}}}},
 		{testMap, testMapNode},
 		{testStruct, testMapNode},
 	}

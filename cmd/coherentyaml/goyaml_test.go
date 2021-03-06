@@ -30,7 +30,7 @@ b: c
 }
 
 func TestReadUnmarshal(t *testing.T) {
-	yml, err := ioutil.ReadFile("./test/test1.yaml")
+	yml, err := ioutil.ReadFile("../../test/test1.yaml")
 	if (err != nil) {
 		t.Errorf("Readfile error : %s", err)
 	} 
@@ -49,7 +49,7 @@ func TestReadUnmarshal(t *testing.T) {
 	}
 }
 func TestDecoder(t *testing.T) {
-	yamlFile, err := os.Open("./test/test1.yaml")
+	yamlFile, err := os.Open("../../test/test1.yaml")
 	if (err != nil) {
 		t.Errorf("Readfile error : %s", err)
 	} 

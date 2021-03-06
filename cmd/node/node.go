@@ -1,4 +1,4 @@
-package main
+package node
 
 import (
 	//"log"
@@ -7,24 +7,24 @@ import (
 	"strings"
 )
 
-type node interface {
+type Node interface {
 	IsCoherent() error
-	IsCoherentWith(n node) error
+	IsCoherentWith(n Node) error
 	String() string
 	IsOperator() bool
 	AsKey() interface{}
 }
 
 type OR struct {
-	child node
+	Child Node
 }
 
-func (or *OR) GetChild() []node {
-	a, ok := or.child.(*nArray);
+func (or *OR) GetChild() []Node {
+	a, ok := or.Child.(*NArray);
 	if ok {
-		return a.child
+		return a.Child
 	}	
-	return []node{or.child} 
+	return []Node{or.Child} 
 }
 
 func (or *OR) IsCoherent() error {
@@ -41,7 +41,7 @@ func (or *OR) IsCoherent() error {
 	return fmt.Errorf("OR %v is not coherent", children)
 }
 
-func (or *OR) IsCoherentWith(n node) error {
+func (or *OR) IsCoherentWith(n Node) error {
 	children := or.GetChild()
 	var err error
 	for _, child := range children {
@@ -73,15 +73,15 @@ func (o *OR) AsKey() interface{} {
 }
 
 type Coherent struct {
-	child node
+	Child Node
 }
 
-func (c *Coherent) GetChild() []node {
-	a, ok := c.child.(*nArray);
+func (c *Coherent) GetChild() []Node {
+	a, ok := c.Child.(*NArray);
 	if ok {
-		return a.child
+		return a.Child
 	}	
-	return []node{c.child} 
+	return []Node{c.Child} 
 }
 
 func (c *Coherent) IsCoherent() error {
@@ -99,7 +99,7 @@ func (c *Coherent) IsCoherent() error {
 	return nil
 }
 
-func (c *Coherent) IsCoherentWith(n node) error {
+func (c *Coherent) IsCoherentWith(n Node) error {
 	children := c.GetChild()
 	var err error 
 	for _, child := range children {
@@ -130,24 +130,24 @@ func (c *Coherent) AsKey() interface{} {
 }
 
 type Not struct {
-	child node
+	Child Node
 }
 
-func (n *Not) GetChild() []node {
-	a, ok := n.child.(*nArray);
+func (n *Not) GetChild() []Node {
+	a, ok := n.Child.(*NArray);
 	if ok {
-		return a.child
+		return a.Child
 	}	
-	return []node{n.child} 
+	return []Node{n.Child} 
 }
 
 func (n *Not) IsCoherent() error {
-	err := n.child.IsCoherent()
+	err := n.Child.IsCoherent()
 	if (err != nil) {
 		return nil
 	}
 	debugPrintf("Not IsCoherent %v : false\n", n)
-	return fmt.Errorf("Not is not coherent '%v'",n.child)
+	return fmt.Errorf("Not is not coherent '%v'",n.Child)
 }
 
 // This is a very special case.
@@ -158,8 +158,8 @@ func (n *Not) IsCoherent() error {
 // "The sky is not blue" // proposal
 // vs "The sky is blue and not the weather is nice"
 
-func (n *Not) IsCoherentWith(o node) error {
-	if n.child.IsOperator() { // proposal
+func (n *Not) IsCoherentWith(o Node) error {
+	if n.Child.IsOperator() { // proposal
 		err1 := n.IsCoherent()
 		err2 := o.IsCoherent()	
 		if (err1 == nil && err2 == nil) {
@@ -167,7 +167,7 @@ func (n *Not) IsCoherentWith(o node) error {
 			return nil
 		}
 	} else { // incomplete proposal
-		err := n.child.IsCoherentWith(o)
+		err := n.Child.IsCoherentWith(o)
 		if (err != nil) {
 			debugPrintf("Not %v vs %v : true (part) %v\n", n, o , err)
 			return nil
@@ -193,7 +193,7 @@ func (n *Not) AsKey() interface{} {
 // 
 //type Str string
 
-var StrZero  node = &leaf{reflect.ValueOf("")}
+var StrZero  Node = &Leaf{reflect.ValueOf("")}
 
 //func (s Str) IsCoherent() error {
 //	return nil
@@ -227,16 +227,16 @@ var StrZero  node = &leaf{reflect.ValueOf("")}
 //	return false
 //}
 
-type leaf struct {
-	value reflect.Value
+type Leaf struct {
+	Value reflect.Value
 }
 
-func (l *leaf) IsCoherent() error {
+func (l *Leaf) IsCoherent() error {
 	return nil
 }
 
-func (l *leaf) IsCoherentWith(n node) error {
-	l2, ok := n.(*leaf);
+func (l *Leaf) IsCoherentWith(n Node) error {
+	l2, ok := n.(*Leaf);
 	if (!ok) {
 		//case with OR/Not/Coherency/.. in between
 		if n.IsOperator() {			
@@ -246,21 +246,21 @@ func (l *leaf) IsCoherentWith(n node) error {
 		}
 	}
 
-	if (l2.value.Interface() == l.value.Interface()) {
+	if (l2.Value.Interface() == l.Value.Interface()) {
 		return nil
 	}
-	equalKind := l2.value.Kind() == l.value.Kind() 
+	equalKind := l2.Value.Kind() == l.Value.Kind() 
 	if (equalKind) {
 		if(l.isNeutral() || l2.isNeutral()) {
 			return nil
 		}
 	}
 	
-	return fmt.Errorf("Incoherent leaf %v vs %v (%s vs %s)", l, l2, l.value.Kind(), l2.value.Kind())
+	return fmt.Errorf("Incoherent leaf %v vs %v (%s vs %s)", l, l2, l.Value.Kind(), l2.Value.Kind())
 }
 
-func (l *leaf) isNeutral() bool {
-	i := l.value
+func (l *Leaf) isNeutral() bool {
+	i := l.Value
 	switch i.Kind() {
 	case reflect.Bool:
 		return false
@@ -280,28 +280,28 @@ func (l *leaf) isNeutral() bool {
 	return false
 }
 
-func (l *leaf) String() string {
-	return fmt.Sprintf("%v", l.value)
+func (l *Leaf) String() string {
+	return fmt.Sprintf("%v", l.Value)
 }
 
-func (*leaf) IsOperator() bool {
+func (*Leaf) IsOperator() bool {
 	return false
 }
 
-func (l *leaf) AsKey() interface{} {
-	return l.value.Interface()
+func (l *Leaf) AsKey() interface{} {
+	return l.Value.Interface()
 }
 
-type nStruct struct {
-	child map[interface{}] nStructValue
+type NStruct struct {
+	Child map[interface{}] NStructValue
 }
 
-type nStructValue struct {
-	n node
-	key node
+type NStructValue struct {
+	n Node
+	key Node
 }
 
-func (n *nStructValue) String() string {
+func (n *NStructValue) String() string {
 	return fmt.Sprintf("%v:%v ", n.key, n.n)
 }
 
@@ -310,25 +310,25 @@ func (n *nStructValue) String() string {
 // un type string se retrouve dans un leaf
 // un leaf contient un object reflect qui n'est "comparrable" qu'avec Interface()
 // d'ou l'usage du AsKey
-func (n *nStruct) get(k node) node {
+func (n *NStruct) get(k Node) Node {
 	key := k.AsKey()
-	value := n.child[key]
+	value := n.Child[key]
 	debugPrintf("Struct get[%v] %v\n", k, value.n)
 	return value.n
 }
 
-func (n *nStruct) set(k node, v node) {
+func (n *NStruct) set(k Node, v Node) {
 	key := k.AsKey()
-	if (n.child == nil) {
-		n.child = make(map[interface{}]nStructValue)
+	if (n.Child == nil) {
+		n.Child = make(map[interface{}]NStructValue)
 	}
-	n.child[key] = struct{n node; key node}{v,k}
+	n.Child[key] = struct{n Node; key Node}{v,k}
 }
 
 
 
-func (n *nStruct) IsCoherent() error {
-	for _,node := range n.child {
+func (n *NStruct) IsCoherent() error {
+	for _,node := range n.Child {
 		err := node.key.IsCoherent()
 		if (err != nil) {
 			return fmt.Errorf("Struct is not coherent, key is %v : %v",node.key, err)
@@ -347,8 +347,8 @@ func (n *nStruct) IsCoherent() error {
 // il faudrait trouver un moyen d'inclusion strict si besoin.
 // (ex: avec regexp, si plusieurs match les faire du plus particluiers au plus général, coherent: {{...},{ ..., "*": nil})
 // si une clef est absente d'un coté, ce n'est pas grave.
-func (n *nStruct) IsCoherentWith(n2 node) error {
-	s2, ok := n2.(*nStruct)
+func (n *NStruct) IsCoherentWith(n2 Node) error {
+	s2, ok := n2.(*NStruct)
 	if !ok {
 		//return fmt.Errorf("Structure needed, %v vs %v\n", n, n2)
 		if n2.IsOperator() {
@@ -358,7 +358,7 @@ func (n *nStruct) IsCoherentWith(n2 node) error {
 		}
 		debugPrintf("Struct")
 	}
-	for _, element := range n.child {
+	for _, element := range n.Child {
 		v2 := s2.get(element.key)
 		if v2 == nil {
 			continue
@@ -373,28 +373,28 @@ func (n *nStruct) IsCoherentWith(n2 node) error {
 	return nil
 }
 
-func (n *nStruct) String() string {
+func (n *NStruct) String() string {
 	var ret string
-	for _, element := range n.child {
+	for _, element := range n.Child {
 		ret+= fmt.Sprintf("%v:%v ", element.key, element.n)
 	}
 	return "{"+ret+"}"
 }
 
-func (* nStruct) IsOperator() bool {
+func (* NStruct) IsOperator() bool {
 	return false
 }
 
-func (n *nStruct) AsKey() interface{} {
+func (n *NStruct) AsKey() interface{} {
 	return n
 }
 
-type nArray struct {
-	child []node
+type NArray struct {
+	Child []Node
 }
 
-func (a *nArray) IsCoherent() error {
-	for _,node := range a.child {
+func (a *NArray) IsCoherent() error {
+	for _,node := range a.Child {
 		err := node.IsCoherent()
 		if (err != nil) {
 			return fmt.Errorf("Array is not coherent, %v : %v",node, err)
@@ -409,13 +409,13 @@ func (a *nArray) IsCoherent() error {
 // Array are not ordered : so an element must be coherent with an other element in the other array, symmetricaly
 // multiplicity are not defined, 
 // 
-func (a *nArray) IsCoherentWith(n2 node) error {
-	a2, ok := n2.(*nArray)
+func (a *NArray) IsCoherentWith(n2 Node) error {
+	a2, ok := n2.(*NArray)
 	if !ok {
 		return n2.IsCoherentWith(a)
 	}
-	c  :=  a.child
-	c2 := a2.child
+	c  :=  a.Child
+	c2 := a2.Child
 	for _,k := range c {
 		ok := false
 		for _,k2 := range c2 {
@@ -434,19 +434,19 @@ func (a *nArray) IsCoherentWith(n2 node) error {
 	return nil
 }
 
-func (n *nArray) String() string {
+func (n *NArray) String() string {
 	var ret string
-	for _,e := range n.child {
+	for _,e := range n.Child {
 		ret += fmt.Sprintf("%v,", e)
 	}
 	return "["+ret+"]"
 }
 
-func (* nArray) IsOperator() bool {
+func (* NArray) IsOperator() bool {
 	return false
 }
 
-func (a *nArray) AsKey() interface{} {
+func (a *NArray) AsKey() interface{} {
 	return a
 }
 

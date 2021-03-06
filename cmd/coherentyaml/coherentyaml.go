@@ -6,9 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"log"
+	"github.com/nicolasboulay/coherentyaml/cmd/node"
 )
 
-// plusieurs fichiers peuvent lu, ils deiennes un seul node avec un Coherent comme racine
+// plusieurs fichiers peuvent lu, ils deviennent un seul node avec un Coherent comme racine
 // de base, coherentyaml, ne retourne rien.
 // en cas d'erreur, le programme retourne la contradiction et sa position
 
@@ -23,7 +24,7 @@ func main() {
 	
 	var ast Ast
 	ast.Read(ymlContent)
-	node := BigUglySwitch(ast.Interface())
+	node := node.BigUglySwitch(ast.Interface())
 	err = node.IsCoherent() 
 	if nil != err { 
 		log.Fatal(err)

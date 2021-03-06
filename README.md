@@ -5,7 +5,7 @@ using a description of what is expected, the schema looks like an
 example with some logical operator.
 
 A minium set of keyword have been created :
-- "Coherent" (a kinf of logicial and)
+- "Coherent" (a kind of logicial and)
 - "OR"
 - "Not"
 
