@@ -10,7 +10,7 @@ import (
 // Je n'ai pas trouvé de moyen d'utiliser les interfaces pour éviter ça. Le gros switch est inévitable,
 // pour créer les nodes.
 // 
-//map et struct sont gérer de la même façon et doivent l'être, elle gène un array pour gérer les clefs particulières
+//map et struct sont gérer de la même façon et doivent l'être, elle gènere un array pour gérer les clefs particulières
 // comme "OR" directement
 //Kind() pas encore utilisé : 
         //Uintptr
