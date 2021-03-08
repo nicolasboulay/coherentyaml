@@ -8,7 +8,7 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-func toYAMLString(root Node) string {
+func ToYAMLString(root Node) string {
 	yamlString,_ := yaml.Marshal(root)
 	return string(yamlString)
 }

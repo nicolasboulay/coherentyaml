@@ -432,10 +432,10 @@ func TestModusTollens(t *testing.T) {
 	nodeA := node.BigUglySwitch(ast.Interface())
 	ast.Read([]byte("a: 2"))
 	nodeB := node.BigUglySwitch(ast.Interface())
-	node := ModusTollens(nodeA, nodeB)
-	err := node.IsCoherent()
+	n := ModusTollens(nodeA, nodeB)
+	err := n.IsCoherent()
 	if (err != nil) {
-		fmt.Printf("modusTollens :\n %v\n", node)
+		fmt.Printf("modusTollens :\n %v\n", node.ToYAMLString(n))
 		t.Errorf("Want coherency : %s\n", err)
 	}
 }
@@ -444,11 +444,11 @@ func TestModusTollensSplit(t *testing.T) {
 
 	nodeA := makeNode("a:2")
 	
-	node := ynot(yand(yor(ynot(nodeA), nodeA),ynot(nodeA)))
+	n := ynot(yand(yor(ynot(nodeA), nodeA),ynot(nodeA)))
 	
-	err := node.IsCoherent()
+	err := n.IsCoherent()
 	if (err != nil) {
-		fmt.Printf("modusTollensSplit :\n %v\n", node)
+		fmt.Printf("modusTollensSplit :\n %v\n", node.ToYAMLString(n))
 		t.Errorf("Want coherency : %s\n", err)
 	}
 }
@@ -468,7 +468,8 @@ func yand(a node.Node, b node.Node) node.Node {
 	return &node.Coherent{&node.NArray{[]node.Node{a,b}}}
 }
 func ynot(a node.Node) node.Node {
-	return &node.Not{a}
+	//	return &node.Not{a}
+		return &node.Not{&node.Not{a}}
 }
 // (~a & b) or (a & ~b)
 func yxor(a node.Node, b node.Node) node.Node {
@@ -579,6 +580,8 @@ func ModusTollens(a node.Node, b node.Node) node.Node {
 //( ¬[(Vrai& Faux )]  |  Faux  )
 //( ¬[(Faux)]  |  Faux  )
 //Vrai | faux
+
+
 
 // ((A -> B) & (B -> C)) -> (A -> C)
 func ModusBarbara(a node.Node, b node.Node, c node.Node) node.Node {
