@@ -65,6 +65,7 @@ func TestNotCoherent(t *testing.T) {
 	intLiteral := &Leaf{reflect.ValueOf(3)}
 	incoherentInt := &Coherent{&NArray{[]Node{intLiteral,&Leaf{reflect.ValueOf(2)}}}}
 	tables := []struct{ name string; n Node;}{
+		{"not s1",not},
 		{"root",root},
 		{"root2",root2},
 		{"incoherentInt",incoherentInt},

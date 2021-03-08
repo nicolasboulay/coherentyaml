@@ -95,7 +95,7 @@ a:
    2 | a:
 >  3 | - b
    4 |   c: d
-        ^
+         ^
 `		
 	t.Logf("%s", err)
 	if err.Error() != ref {
@@ -128,7 +128,7 @@ b: c
 `
 	var v interface{}
 	err := yaml.Unmarshal([]byte(yml), &v)
-	t.Logf("%#v", v)
+	//t.Logf("%#v", v)
 
 	if err != nil {
 		t.Errorf("unmarshall error %s", err)

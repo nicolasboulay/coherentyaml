@@ -4,6 +4,7 @@ import (
 	"testing"
 	"fmt"
 	"reflect"
+	"encoding/json"
 	"github.com/nicolasboulay/coherentyaml/cmd/node"
 )
 func TestIso(t *testing.T) {
@@ -196,6 +197,25 @@ a:
   - g: 4
     h: 5
 `,
+`- Not:
+     a: 1
+`,
+`
+- Not:
+    s: toto
+`,
+`
+Coherent:
+ Not:
+   a: "toto"
+ a: "toto"
+`,
+`
+Coherent:
+ Not:
+   a: "titi"
+ a: "toto"
+`,	
 }
 
 // from https://fr.wikipedia.org/wiki/Calcul_des_propositions
@@ -225,6 +245,80 @@ func TestCalculDePropositionTheorem(t *testing.T) {
 		break
 	}	
 }
+
+func TestTautologie1(t *testing.T) {
+	for _, A := range possible_set {
+		nodeA := makeNode(A)	
+		for _, B := range possible_set {
+			nodeB := makeNode(B)
+			node := tautologie1(nodeA, nodeB)
+			err := node.IsCoherent()
+			if (err != nil) {
+				t.Fatalf(" p ⇒ (q ⇒ p) should be true: %s \n %v\n %v \n %v\n", err, nodeA, nodeB, node)
+			}
+		}
+	}
+}
+
+func TestTautologie5(t *testing.T) {
+	for _, A := range possible_set {
+		nodeA := makeNode(A)	
+		for _, B := range possible_set {
+			nodeB := makeNode(B)
+			node := tautologie5(nodeA, nodeB)
+			err := node.IsCoherent()
+			if (err != nil) {
+				t.Fatalf("¬p ⇒ (p ⇒ q)  should be true: %s \n %v\n %v \n %v\n", err, nodeA, nodeB, node)
+			}
+		}
+	}
+}
+
+func TestTautologie2(t *testing.T) {
+	for _, A := range possible_set {
+		nodeA := makeNode(A)	
+		for _, B := range possible_set {
+			nodeB := makeNode(B)
+			for _, C := range possible_set {
+				nodeC := makeNode(C)
+				node := tautologie2(nodeA, nodeB, nodeC)
+				err := node.IsCoherent()
+				if (err != nil) {
+					t.Fatalf("(p ⇒ q) ⇒ ((q ⇒ r ) ⇒ (p ⇒ r )) should be true: %s \n %v\n %v \n %v\n %v\n", err, nodeA, nodeB, nodeC, node)
+				}
+			}
+		}
+	}
+}
+
+func TestTautologie3(t *testing.T) {
+	for _, A := range possible_set {
+		nodeA := makeNode(A)	
+		for _, B := range possible_set {
+			nodeB := makeNode(B)
+			for _, C := range possible_set {
+				nodeC := makeNode(C)
+				node := tautologie3(nodeA, nodeB, nodeC)
+				err := node.IsCoherent()
+				if (err != nil) {
+					t.Fatalf("(p ⇒ q) ⇒ (((p ⇒ r ) ⇒ q) ⇒ q) should be true: %s \n %v\n %v \n %v\n %v\n", err, nodeA, nodeB, nodeC, node)
+				}
+			}
+		}
+	}
+}
+
+func TestTautologie4(t *testing.T) {
+	for _, A := range possible_set {
+		nodeA := makeNode(A)	
+		node := tautologie4(nodeA)
+		err := node.IsCoherent()
+		if (err != nil) {
+			t.Fatalf("(¬p ⇒ p) ⇒ p should be true: %s \n %v\n %v\n", err, nodeA, node)
+		}
+	}
+}
+
 func TestCalculDeProposition2(t *testing.T) {
 	relation := []func(node.Node, node.Node) node.Node{
 		PeircesLaw,
@@ -234,26 +328,43 @@ func TestCalculDeProposition2(t *testing.T) {
 		ModusPonens,
 		ModusTollens,
 	}
+	relationString := []string{
+		"PeircesLaw",
+		"DeMorgansLaws1",
+		"DeMorgansLaws2",
+		"Contraposition",
+		"ModusPonens",
+		"ModusTollens",
+	}
 	for _, A := range possible_set {
-		var ast Ast
-		ast.Read([]byte(A))
-		nodeA := node.BigUglySwitch(ast.Interface())
-		
+	//	var ast Ast
+	//	ast.Read([]byte(A))
+	//	nodeA := node.BigUglySwitch(ast.Interface())
+		nodeA := makeNode(A)	
 		for _, B := range possible_set {
 
-			ast.Read([]byte(B))
-			nodeB := node.BigUglySwitch(ast.Interface())
-
+//			ast.Read([]byte(B))
+//			nodeB := node.BigUglySwitch(ast.Interface())
+			nodeB := makeNode(B)
 			for i,f :=  range relation {
 				node := f(nodeA, nodeB)
 				err := node.IsCoherent()
 				if (err != nil) {
-					t.Fatalf("Want coherency in %v %v %v : %s",
-						i, nodeA, nodeB, err)
+					//t.Fatalf("Want coherency in %v %v %v : %s",
+					//	i, nodeA, nodeB, err)
+					t.Fatalf("Want coherency in %s : %s \n %v\n %v \n %v\n",
+						relationString[i], err, nodeA, nodeB, node)
+					
 				}
 			}
 		}
 	}
+}
+
+func makeNode(s string) node.Node {
+	var ast Ast
+	ast.Read([]byte(s))
+	return node.BigUglySwitch(ast.Interface())
 }
 
 func TestCalculDeProposition(t *testing.T) {
@@ -329,6 +440,27 @@ func TestModusTollens(t *testing.T) {
 	}
 }
 
+func TestModusTollensSplit(t *testing.T) {
+
+	nodeA := makeNode("a:2")
+	
+	node := ynot(yand(yor(ynot(nodeA), nodeA),ynot(nodeA)))
+	
+	err := node.IsCoherent()
+	if (err != nil) {
+		fmt.Printf("modusTollensSplit :\n %v\n", node)
+		t.Errorf("Want coherency : %s\n", err)
+	}
+}
+
+func prettyPrint(t *testing.T, i interface{}) string {
+	s, err := json.MarshalIndent(i, "", "\t")
+	if (err != nil) {
+		t.Fatal(err)
+	}
+	return string(s)
+}
+
 func yor(a node.Node, b node.Node) node.Node {
 	return &node.OR{&node.NArray{[]node.Node{a,b}}}
 }
@@ -351,6 +483,32 @@ func equivalence(a node.Node, b node.Node) node.Node {
 func implication(a node.Node, b node.Node) node.Node {
 	return yor(ynot(a), b)
 	
+}
+
+// tautologie de https://fr.wikipedia.org/wiki/Implication_(logique)
+
+// p ⇒ (q ⇒ p)
+func tautologie1(p node.Node, q node.Node) node.Node {
+	return implication(p, implication(q,p))
+}
+
+// (p ⇒ q) ⇒ ((q ⇒ r ) ⇒ (p ⇒ r ))
+func tautologie2(p node.Node, q node.Node, r node.Node) node.Node {
+	return implication(implication(p,q),implication(implication(q,r),implication(q,r))) 
+}
+
+// (p ⇒ q) ⇒ (((p ⇒ r ) ⇒ q) ⇒ q)
+func tautologie3(p node.Node, q node.Node, r node.Node) node.Node {
+	return implication(implication(p,q), implication(implication(implication(q,r),q),q))
+}
+// (¬p ⇒ p) ⇒ p
+func tautologie4(p node.Node) node.Node{
+	return implication(implication(ynot(p),p),p)
+}
+
+// ¬p ⇒ (p ⇒ q) 
+func tautologie5(p node.Node, q node.Node) node.Node {
+	return implication(ynot(p),implication(p,q))
 }
 
 //
@@ -415,6 +573,12 @@ func ModusPonens(a node.Node, b node.Node) node.Node {
 func ModusTollens(a node.Node, b node.Node) node.Node {
 	return implication(yand(implication(a,b),ynot(b)),ynot(a))
 }
+// ( ¬[(( ¬[{a:2}]  | {a:2} )& ¬[{a:2}] )]  |  ¬[{a:2}]  )
+//( ¬[(( ¬[Vrai]  | Vrai )& ¬[Vrai] )]  |  ¬[Vrai]  )
+//( ¬[(( Faux  | Vrai )& Faux )]  |  Faux  )
+//( ¬[(Vrai& Faux )]  |  Faux  )
+//( ¬[(Faux)]  |  Faux  )
+//Vrai | faux
 
 // ((A -> B) & (B -> C)) -> (A -> C)
 func ModusBarbara(a node.Node, b node.Node, c node.Node) node.Node {
