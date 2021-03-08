@@ -319,7 +319,7 @@ func (l *Leaf) isNeutral() bool {
 	case reflect.String:
 		return i.String() == "" 
 	default: {
-		fmt.Printf("isNeutral unknwon: %v\n",i)
+		fmt.Printf("isNeutral unknown: %v\n",i)
 		return false
 	}
 	}

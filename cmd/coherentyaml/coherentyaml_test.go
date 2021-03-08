@@ -468,8 +468,8 @@ func yand(a node.Node, b node.Node) node.Node {
 	return &node.Coherent{&node.NArray{[]node.Node{a,b}}}
 }
 func ynot(a node.Node) node.Node {
-	//	return &node.Not{a}
-		return &node.Not{&node.Not{a}}
+		return &node.Not{a}
+	//	return &node.Not{&node.Not{a}}
 }
 // (~a & b) or (a & ~b)
 func yxor(a node.Node, b node.Node) node.Node {
