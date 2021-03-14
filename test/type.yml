@@ -1,0 +1,11 @@
+# The value should be an int:
+
+is-an-int: !!int 5.6
+
+# Turn any value to a string:
+
+is-a-str: !!str 90.88
+
+# The next value should be a boolean:
+
+is-a-bool: !!boolean t

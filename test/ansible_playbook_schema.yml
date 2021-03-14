@@ -1,0 +1,31 @@
+
+- hosts: ""
+
+  vars:
+    http_port: 1
+    max_clients: 1
+
+  remote_user: ""
+
+  tasks:
+  - name: ""
+    yum:
+      name: ""
+      state: ""
+  - name: ""
+    template:
+      src: ""
+      dest: ""
+    notify:
+    - ""
+  - name: ""
+
+    service:
+      name: ""
+      state: ""
+
+  handlers:
+    - name: ""
+      service:
+        name: ""
+        stat: ""
