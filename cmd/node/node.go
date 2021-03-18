@@ -12,7 +12,7 @@ func ToYAMLString(root Node) string {
 	yamlString,_ := yaml.Marshal(root)
 	return string(yamlString)
 }
-var debug = false
+var debug = true
 
 type Node interface {
 	IsCoherent() error
@@ -21,6 +21,13 @@ type Node interface {
 	IsOperator() bool
 	AsKey() interface{}
 	MarshalYAML() (interface{}, error)
+}
+
+func IsCoherent(n Node) error {
+	debugPrintfStart("Node IsCoherent %v :\n", n)
+	ret := n.IsCoherentWith(yes)
+	debugPrintfEnd("Node IsCoherent : %s\n", ret)
+	return ret
 }
 
 type Yes struct {
@@ -32,7 +39,10 @@ func (*Yes) IsCoherent() error {
 }
 
 func (*Yes) IsCoherentWith(n Node) error {
-	return n.IsCoherent()
+	debugPrintfStart("Yes IsCoherentWith %v :\n", n)
+	ret := n.IsCoherent()
+	debugPrintfEnd("Yes IsCoherentWith %v : %v\n", n, ret)
+	return ret
 }
 func (*Yes) String() string {
 	return "true"
@@ -100,8 +110,9 @@ func (or *OR) IsCoherent() error {
 //	}	
 //	debugPrintfEnd("OR IsCoherent %v : false\n", or)
 //	return fmt.Errorf("OR %v is not coherent", children)
-	ret := or.IsCoherentWith(yes)
-	debugPrintfEnd("OR IsCoherent : %s\n", ret)
+	//ret := or.IsCoherentWith(yes)
+	ret := IsCoherent(or)
+	debugPrintfEnd("OR IsCoherent %v : %s\n", or, ret)
 	return ret
 }
 
@@ -144,7 +155,7 @@ func bold(s string ) string {
 func keyS(n Node, s string) string {
 	d :=debug
 	debug = false
-	if (n.IsCoherent() == nil){
+	if (n != nil && n.IsCoherent() == nil){
 		s = bold(s)
 	}
 	debug = d
@@ -182,8 +193,9 @@ func (c *Coherent) IsCoherent() error {
 //			}
 //		}
 	//	}
-	ret := c.IsCoherentWith(yes)
-	debugPrintfEnd("Coherent IsCoherent : %v\n", ret)
+	//ret := c.IsCoherentWith(yes)
+	ret := IsCoherent(c)
+	debugPrintfEnd("Coherent IsCoherent %v : %v\n", c,ret)
 	return ret
 }
 
@@ -261,7 +273,8 @@ func (n *Not) IsCoherent() error {
 //	// incomplete proposal : always true
 //	debugPrintfEnd("Not IsCoherent %v : true\n", n)
 //	return nil
-	ret := n.IsCoherentWith(yes)
+	//ret := n.IsCoherentWith(yes)
+	ret := IsCoherent(n)
 	debugPrintfEnd("Not IsCoherent %v : %v\n", n ,ret)
 	return ret
 }
@@ -496,19 +509,20 @@ func (n *NStruct) set(k Node, v Node) {
 
 func (n *NStruct) IsCoherent() error {
 	debugPrintfStart("Struct IsCoherent %v :\n", n)
-	for _,node := range n.Child {
-		err := node.key.IsCoherent()
-		if (err != nil) {
-			debugPrintfEnd("Struct IsCoherent %v : false\n", n)
-			return fmt.Errorf("Struct is not coherent, key is %v : %v",node.key, err)
-		}
-		err = node.n.IsCoherent()
-		if (err != nil) {
-			debugPrintfEnd("Struct IsCoherent %v : false\n", n)
-			return fmt.Errorf("Struct is not coherent, [%v] valuse is %v: %v ",node.key, node.n, err)
-		}
-	}
-	debugPrintfEnd("Struct IsCoherent %v : true\n", n)
+//	for _,node := range n.Child {
+//		err := node.key.IsCoherent()
+//		if (err != nil) {
+//			debugPrintfEnd("Struct IsCoherent %v : false\n", n)
+//			return fmt.Errorf("Struct is not coherent, key is %v : %v",node.key, err)
+//		}
+//		err = node.n.IsCoherent()
+//		if (err != nil) {
+//			debugPrintfEnd("Struct IsCoherent %v : false\n", n)
+//			return fmt.Errorf("Struct is not coherent, [%v] valuse is %v: %v ",node.key, node.n, err)
+//		}
+//	}
+	ret := IsCoherent(n)
+	debugPrintfEnd("Struct IsCoherent %v : %v\n", n, ret)
 	return nil
 }
 // une struct est coherent avec une autre si les champs présent sont coherent entre eux.
@@ -516,14 +530,20 @@ func (n *NStruct) IsCoherent() error {
 // L'ordre des champs n'est pas important.
 // il faudrait trouver un moyen d'inclusion strict si besoin.
 // (ex: avec regexp, si plusieurs match les faire du plus particuliers au plus général, coherent: {{...},{ ..., "*": nil})
-// si une clef est absente d'un coté, ce n'est pas grave.
+// si une clef est absente d'un coté, cela doit être un erreur.
+// si un clef est présente d'un coté, elle doit l'être de l'autre.
+// si clef contient "?" à la fin, (0 or one) la clef n'est pas obligatoire de l'autre.
 func (n *NStruct) IsCoherentWith(n2 Node) error {
 	debugPrintfStart("Struct IsCoherentWith %v  %v :\n", n, n2)
 	s2, ok := n2.(*NStruct)
+	fmt.Printf("1")
 	if !ok {
+		fmt.Printf("2")
+
 		//return fmt.Errorf("Structure needed, %v vs %v\n", n, n2)
 		if n2.IsOperator() {
-			ret := n2.IsCoherentWith(n)
+			fmt.Printf("3")
+			ret := n2.IsCoherent()
 			debugPrintfEnd("Struct IsCoherentWith %v  %v : %v\n", n, n2, ret)
 			return ret
 		} else {
@@ -534,7 +554,8 @@ func (n *NStruct) IsCoherentWith(n2 Node) error {
 	for _, element := range n.Child {
 		v2 := s2.get(element.key)
 		if v2 == nil {
-			continue
+			debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", n, n2)
+			return fmt.Errorf("Struct %v is not coherent with %v : missing key %v",n, n2, element.key)
 		}
 		err := v2.IsCoherentWith(element.n)
 		if err != nil {
@@ -594,7 +615,7 @@ func (a *NArray) IsCoherent() error {
 // multiplicity are not defined, 
 // 
 func (a *NArray) IsCoherentWith(n2 Node) error {
-	debugPrintfStart("Array IsCoherentWith %v  %v : true\n",a,n2)
+	debugPrintfStart("Array IsCoherentWith %v  %v :\n",a,n2)
 	a2, ok := n2.(*NArray)
 	if !ok {
 		return n2.IsCoherentWith(a)
@@ -603,8 +624,9 @@ func (a *NArray) IsCoherentWith(n2 Node) error {
 	c2 := a2.Child
 	for _,k := range c {
 		ok := false
+		var err error
 		for _,k2 := range c2 {
-			err := k2.IsCoherentWith(k)
+			err = k2.IsCoherentWith(k)
 			if (err == nil) {
 				ok = true
 				break
@@ -612,7 +634,7 @@ func (a *NArray) IsCoherentWith(n2 Node) error {
 		}
 		if (!ok) {
 			debugPrintfEnd("Array IsCoherentWith %v  %v : false\n",a,n2)
-			return fmt.Errorf("'Array' value should match without order :\n%v\n%v",a,n2)
+			return fmt.Errorf("'Array' value should match without order : %s\n%v\n%v",err,a,n2)
 		}
 	}
 	debugPrintfEnd("Array IsCoherentWith %v  &  %v : true\n",a,n2)

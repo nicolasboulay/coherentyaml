@@ -33,8 +33,9 @@ func main() {
 	
 	node1 := makeNodeFromFile(filename)
 	err := node1.IsCoherent() 
-	if nil != err { 
-		log.Fatal(err)
+	if nil != err {
+		fatalError(err,node1)
+		//log.Fatal(err)
 	}
 
 	filename2 := flag.Arg(1)
@@ -46,15 +47,22 @@ func main() {
 
 	err = node2.IsCoherentWith(node1) 
 	if nil != err { 
-		log.Fatal(err)
+		fmt.Print(node.ToYAMLString(node1) + "vs\n")
+		fatalError(err,node2)
 	}
 
 	
 }
 
+func fatalError(err error, n node.Node) {
+	fmt.Print(node.ToYAMLString(n))
+	log.Fatal(err)
+}
+
 func makeNode(s string) node.Node {
 	var ast Ast
 	ast.Read([]byte(s))
+	VerbosePrintfIn("Making ast : \n%v\n", ast.Interface())
 	n:= node.BigUglySwitch(ast.Interface())
 	VerbosePrintfIn("Making node : \n%v", node.ToYAMLString(n))
 	return n
@@ -65,7 +73,7 @@ func makeNodeFromFile(filename string) node.Node {
 	if (err != nil) {
 		fmt.Fprintf(os.Stderr, "Read file error : %s", err)
 	}
-	VerbosePrintfIn("Parsing file : %v\n", filename)
+	VerbosePrintfIn("Parsing file : %v\n%s", filename, string(ymlContent))
 	return makeNode(string(ymlContent))
 }
 

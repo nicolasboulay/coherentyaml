@@ -361,11 +361,11 @@ func TestCalculDeProposition2(t *testing.T) {
 	}
 }
 
-func makeNode(s string) node.Node {
-	var ast Ast
-	ast.Read([]byte(s))
-	return node.BigUglySwitch(ast.Interface())
-}
+//func makeNode(s string) node.Node {
+//	var ast Ast
+//	ast.Read([]byte(s))
+//	return node.BigUglySwitch(ast.Interface())
+//}
 
 func TestCalculDeProposition(t *testing.T) {
 	relation := []func(node.Node, node.Node) node.Node{
