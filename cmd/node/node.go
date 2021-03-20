@@ -12,7 +12,7 @@ func ToYAMLString(root Node) string {
 	yamlString,_ := yaml.Marshal(root)
 	return string(yamlString)
 }
-var debug = true
+var debug = false
 
 type Node interface {
 	IsCoherent() error
@@ -483,6 +483,20 @@ type NStructValue struct {
 	key Node
 }
 
+func (element *NStructValue) IsCoherentWithStruct(s2 *NStruct, from *NStruct) error {
+	v2 := s2.get(element.key)
+	if v2 == nil {
+		debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", from, s2)
+		return fmt.Errorf("Struct %v is not coherent with %v : missing key '%v'", from, s2, element.key)
+	}
+	err := v2.IsCoherentWith(element.n)
+	if err != nil {
+		debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", from, s2)
+		return fmt.Errorf("Struct %v is not coherent with %v : %v",v2, element.n, err)
+	}
+	return nil
+}
+
 func (n *NStructValue) String() string {
 	return fmt.Sprintf("%v:%v ", n.key, n.n)
 }
@@ -536,13 +550,9 @@ func (n *NStruct) IsCoherent() error {
 func (n *NStruct) IsCoherentWith(n2 Node) error {
 	debugPrintfStart("Struct IsCoherentWith %v  %v :\n", n, n2)
 	s2, ok := n2.(*NStruct)
-	fmt.Printf("1")
 	if !ok {
-		fmt.Printf("2")
-
 		//return fmt.Errorf("Structure needed, %v vs %v\n", n, n2)
 		if n2.IsOperator() {
-			fmt.Printf("3")
 			ret := n2.IsCoherent()
 			debugPrintfEnd("Struct IsCoherentWith %v  %v : %v\n", n, n2, ret)
 			return ret
@@ -552,17 +562,28 @@ func (n *NStruct) IsCoherentWith(n2 Node) error {
 		}
 	}
 	for _, element := range n.Child {
-		v2 := s2.get(element.key)
-		if v2 == nil {
-			debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", n, n2)
-			return fmt.Errorf("Struct %v is not coherent with %v : missing key %v",n, n2, element.key)
-		}
-		err := v2.IsCoherentWith(element.n)
+		err := element.IsCoherentWithStruct(s2,n)
 		if err != nil {
-			debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", n, n2)
-			return fmt.Errorf("Struct %v is not coherent with %v : %v",v2, element.n, err)
+			return err
 		}
 	}
+	for _, element := range s2.Child {
+		err := element.IsCoherentWithStruct(n,s2)
+		if err != nil {
+			return err
+		}
+	}
+//		v2 := s2.get(element.key)
+//		if v2 == nil {
+//			debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", n, n2)
+//			return fmt.Errorf("Struct %v is not coherent with %v : missing key %v",n, n2, element.key)
+//		}
+//		err := v2.IsCoherentWith(element.n)
+//		if err != nil {
+//			debugPrintfEnd("Struct IsCoherentWith %v  %v : false\n", n, n2)
+//			return fmt.Errorf("Struct %v is not coherent with %v : %v",v2, element.n, err)
+//		}
+//	}
 	debugPrintfEnd("Struct IsCoherentWith %v  &  %v : true\n", n, n2)
 	return nil
 }
@@ -646,6 +667,7 @@ func (n *NArray) String() string {
 	for _,e := range n.Child {
 		ret += fmt.Sprintf("%v,", e)
 	}
+	ret = strings.TrimSuffix(ret,",")
 	return "["+ret+"]"
 }
 
