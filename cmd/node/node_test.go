@@ -47,10 +47,34 @@ func TestCoherent(t *testing.T) {
 		{"coherentInt",coherentInt},
 	}
 
-	for _, node := range tables {
-		err := node.n.IsCoherent()
+	for _, n := range tables {
+		err := n.n.IsCoherent()
 		if (err != nil) {
-			t.Errorf("Want coherency in %s : %s",node.name, err)
+			t.Errorf("Want coherency in %s : %s\n%v\n",n.name, err, ToYAMLString(n.n))
+		}
+	}
+}
+
+func TestRoot2(t *testing.T) {
+	s1 := MakeString("s1")
+	s2 := MakeString("s2")
+	//c:= &Coherent{&NArray{[]Node{s1,StrZero}}}
+	//root := &Coherent{&NArray{[]Node{s1, StrZero, c}}}
+	//or := &OR{&NArray{[]Node{s1, s2}}}
+	not := &Not{s1}
+	root2 := &Coherent{&NArray{[]Node{not,s2}}}
+	//root3 := &Coherent{&NArray{[]Node{s1,or}}}
+	//root4 := &Coherent{&NArray{[]Node{not,or}}} // (non A) && (A || B)
+        //neutralInt := &Leaf{reflect.ValueOf(-1)}
+	//coherentInt := &Coherent{&NArray{[]Node{neutralInt,&Leaf{reflect.ValueOf(0)}}}}
+	tables := []struct{ name string; n Node;}{
+		{"root2",root2},
+	}
+
+	for _, n := range tables {
+		err := n.n.IsCoherent()
+		if (err != nil) {
+			t.Errorf("Want coherency in %s : %s\n%v\n",n.name, err, ToYAMLString(n.n))
 		}
 	}
 }
@@ -61,11 +85,12 @@ func TestNotCoherent(t *testing.T) {
 	c:= &Coherent{&NArray{[]Node{s2,StrZero}}}
 	root := &Coherent{&NArray{[]Node{s1, StrZero, c}}}
 	not := &Not{s1}
+	notnot := &Not{&Not{s1}}
 	root2 := &Coherent{&NArray{[]Node{not,s1}}}
 	intLiteral := &Leaf{reflect.ValueOf(3)}
 	incoherentInt := &Coherent{&NArray{[]Node{intLiteral,&Leaf{reflect.ValueOf(2)}}}}
 	tables := []struct{ name string; n Node;}{
-		{"not s1",not},
+		{"not not s1",notnot},
 		{"root",root},
 		{"root2",root2},
 		{"incoherentInt",incoherentInt},
@@ -74,7 +99,7 @@ func TestNotCoherent(t *testing.T) {
 	for _, node := range tables {
 		err := node.n.IsCoherent()
 		if (err == nil) {
-			t.Errorf("Want error in %s : %v",node.name, node.n)
+			t.Errorf("Want error in %s : %v",node.name, ToYAMLString(node.n))
 		}
 	}
 }

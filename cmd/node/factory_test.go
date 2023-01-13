@@ -43,7 +43,7 @@ func TestBigUglySwitchTable(t *testing.T) {
 	testMap["Coherent"] = []int{2,2}
 	testMap["OR"] = []int{1,2}
 	testMap["Not"] = 2
-	testMapNode1 := &NArray{[]Node{&Leaf{reflect.ValueOf(2)},&Leaf{reflect.ValueOf(1)}}}
+	testMapNode1 := &NArray{[]Node{&Leaf{reflect.ValueOf(2)},&Leaf{reflect.ValueOf(-1)}}}
 	testMapCoherent  := &Coherent{testMapNode1}
 	testMapOR  := &OR{testMapNode1}
 	testMapNot  := &Not{&Leaf{reflect.ValueOf(1)}}
@@ -71,12 +71,15 @@ func TestBigUglySwitchTable(t *testing.T) {
 	}
 
 	for _, line := range tables {
+		
 		node := BigUglySwitch(line.dut)
-		if nil != node.IsCoherentWith(line.expected) {
-			t.Errorf("Want coherency in %#v :\n%v instead of\n %v",line.dut, node, line.expected)
+		err := node.IsCoherentWith(line.expected) 
+		if nil != err {
+			t.Errorf("Want coherency in %#v :\n%s\n instead of\n %s\n%s\n",line.dut, ToYAMLString(node), ToYAMLString(line.expected),err)
 		}
-		if nil != line.expected.IsCoherentWith(node) {
-			t.Errorf("Want coherency in %#v :\n%#v instead of\n %#v",line.dut, node, line.expected)
+		err = line.expected.IsCoherentWith(node)
+		if nil != err {
+			t.Errorf("Want coherency in %#v :\n%s\n instead of\n %s\n%s\n",line.dut, ToYAMLString(node), ToYAMLString(line.expected),err)
 		}
 	}
 }
