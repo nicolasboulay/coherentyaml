@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM golang:1.27.0-bookworm
 
 ENV CODEX_HOME=/codex-home \
     DEBIAN_FRONTEND=noninteractive
