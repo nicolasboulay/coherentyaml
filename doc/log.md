@@ -58,3 +58,53 @@
 
   Go 1.27.0 est la version stable actuelle, publiée le 19 août 2026 ; Go 1.26.7 constitue une base plus éprouvée pour le minimum supporté (historique officiel Go (https://go.dev/doc/devel/release)). goccy/go-yaml est actuellement en 1.19.2 (releases officielles (https://github.com/goccy/go-yaml/releases)). J’ai testé cette montée de version dans une copie temporaire : elle compile et conserve exactement les trois échecs
   existants, sans nouvelle régression détectée.
+
+# 20260824
+
+### Déjà fait ou partiellement fait
+
+- L’image Docker utilise maintenant Go 1.27 et les fichiers Docker sont suivis par Git.
+- Les commandes go test, go vet et couverture ont été ajoutées à TEST.
+- Le moteur est déjà isolé dans internal/node, distinct de la CLI.
+- Un hook gofmt existe pour les futurs commits.
+
+### Priorité haute — toujours à faire
+
+1. Définir le contrat fonctionnel avant correction :
+    - politique des clés supplémentaires ;
+    - ordre et multiplicité des tableaux ;
+    - sémantique exacte de Not ;
+    - comportement de null ;
+    - prise en charge réelle de plusieurs fichiers.
+
+2. Réparer et compléter les tests :
+    - les trois groupes d’échecs consignés n’ont pas été corrigés ;
+    - deux break limitent encore fortement les tests ;
+    - les commandes ajoutées à TEST automatisent les contrôles, mais ne les rendent pas verts.
+
+3. Corriger les défauts moteur toujours présents :
+    - NStruct.IsCoherent() ignore encore l’erreur calculée et retourne nil dans internal/node/node.go:528 ;
+    - les tableaux ne sont comparés que dans un sens dans internal/node/node.go:642 ;
+    - leur multiplicité reste explicitement indéfinie ;
+    - No.String() retourne toujours "true" ;
+    - OR est toujours sérialisé sous Or ;
+    - Not demeure non finalisé et le README l’annonce toujours non fonctionnel.
+
+4. Fiabiliser la CLI :
+    - log.Fatal est toujours employé pendant le parsing YAML dans cmd/coherentyaml/ast.go:12 ;
+    - une erreur de lecture est affichée mais l’exécution continue dans cmd/coherentyaml/coherentyaml.go:70 ;
+    - seuls les deux premiers arguments sont utilisés malgré l’aide [fichier2 ...] ;
+    - les codes de sortie et les erreurs ne sont pas encore formalisés.
+
+### Modernisation encore incomplète
+
+- Aucun branchement modernisation : les deux nouveaux commits sont directement sur master, actuellement en avance de deux commits sur origin/master.
+- Les anciennes branches distantes fusion et forgotten_work existent encore.
+- go.mod:3 déclare Go 1.19, alors que Docker utilise 1.27 : il faut décider et documenter la version minimale supportée.
+- goccy/go-yaml reste en version 1.8.9.
+- Pas de GitHub Actions, de contrôle de vulnérabilités ni de publication.
+- Le README reste très sommaire et ne documente pas précisément le langage de schéma.
+
+ Je n’ai pas pu relancer les contrôles : ni Go, ni Docker ne sont disponibles dans l’environnement courant. Comme seuls Dockerfile, TEST, go.mod et go.sum ont changé depuis l’analyse, aucun correctif fonctionnel ne peut cependant avoir résolu les anomalies du moteur ou de la CLI.
+
+  L’ordre conseillé est donc : figer les cinq décisions fonctionnelles, réécrire les tests concernés, corriger le moteur, corriger la CLI, puis terminer versionnement, CI et documentation.
