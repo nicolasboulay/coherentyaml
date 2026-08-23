@@ -1,0 +1,20 @@
+services:
+  codex:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    stdin_open: true
+    tty: true
+    environment:
+      CODEX_HOME: /codex-home
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - ${HOME}/.codex/auth.json:/codex-home/auth.json:ro
+      - ../skills-ia-common:/skill-repos/common-skills
+    ports:
+      - "54391"
+    command:
+      - codex
+      - --dangerously-bypass-approvals-and-sandbox
