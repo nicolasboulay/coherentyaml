@@ -33,7 +33,7 @@ b: c
 }
 
 func TestRead(t *testing.T) {
-		yml := `
+	yml := `
 %YAML 1.2
 ---
 a: 1
@@ -44,11 +44,11 @@ b: c
 	var v map[string]interface{}
 	v = a.V.(map[string]interface{})
 	va := v["a"].(uint64)
-	if (va != 1) {
+	if va != 1 {
 		t.Errorf("Unmarshal v.A = %v; want 1", va)
 	}
 	vc := v["b"].(string)
-	if ( vc != "c") {
+	if vc != "c" {
 		t.Errorf("Unmarshal v.B = %s; want 'c'", vc)
 	}
 }

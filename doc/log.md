@@ -23,12 +23,12 @@
   - TestCalculDeProposition2 : échec autour des lois de De Morgan.
   - TestCalculDeProposition : plusieurs tautologies échouent, principalement autour de Not.
 
-  Le paquet moteur cmd/node passe seul avec 63,3 % de couverture. Le paquet CLI échoue avec 18,6 % de couverture.
+  Le paquet moteur internal/node passe seul avec 63,3 % de couverture. Le paquet CLI échoue avec 18,6 % de couverture.
 
   Les problèmes les plus importants sont :
 
   - Le README annonce déjà que Not n’est pas fonctionnel : README.md:12.
-  - NStruct.IsCoherent calcule une erreur mais retourne toujours nil : cmd/node/node.go:524.
+  - NStruct.IsCoherent calcule une erreur mais retourne toujours nil : internal/node/node.go:528.
   - La comparaison des tableaux prétend être symétrique, mais ne vérifie qu’un sens.
   - No.String() renvoie "true".
   - OR est lu avec la clé OR mais réécrit sous la forme Or.

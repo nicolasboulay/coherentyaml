@@ -22,3 +22,13 @@ Each data is coherent to it-self. Coherence is symetrical.
 
 The tool compile with go build into cmd/coherentyaml.
 
+## Development
+
+Enable the versioned Git hooks after cloning the repository:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook formats staged Go files with `gofmt` and adds the
+formatted result back to the commit.

@@ -10,7 +10,7 @@ type Ast struct {
 }
 
 func (ast *Ast) Read(yml []byte) {
-	 err := yaml.Unmarshal([]byte(yml), &ast.V);
+	err := yaml.Unmarshal([]byte(yml), &ast.V)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -15,4 +15,7 @@
 # vendor/
 
 #emacs file
-*~ 
+*~
+
+#binary
+./coherentyaml
