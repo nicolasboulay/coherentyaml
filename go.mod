@@ -1,6 +1,6 @@
 module github.com/nicolasboulay/coherentyaml
 
-go 1.27.0
+go 1.19
 
 require github.com/goccy/go-yaml v1.8.9
 
