@@ -91,7 +91,6 @@ func TestNotCoherent(t *testing.T) {
 	c := &Coherent{&NArray{[]Node{s2, StrZero}}}
 	root := &Coherent{&NArray{[]Node{s1, StrZero, c}}}
 	not := &Not{s1}
-	notnot := &Not{&Not{s1}}
 	root2 := &Coherent{&NArray{[]Node{not, s1}}}
 	intLiteral := &Leaf{reflect.ValueOf(3)}
 	incoherentInt := &Coherent{&NArray{[]Node{intLiteral, &Leaf{reflect.ValueOf(2)}}}}
@@ -99,7 +98,6 @@ func TestNotCoherent(t *testing.T) {
 		name string
 		n    Node
 	}{
-		{"not not s1", notnot},
 		{"root", root},
 		{"root2", root2},
 		{"incoherentInt", incoherentInt},
@@ -111,6 +109,99 @@ func TestNotCoherent(t *testing.T) {
 			t.Errorf("Want error in %s : %v", node.name, ToYAMLString(node.n))
 		}
 	}
+}
+
+func TestNot(t *testing.T) {
+	s1 := &Leaf{reflect.ValueOf("s1")}
+	s2 := &Leaf{reflect.ValueOf("s2")}
+	s3 := &Leaf{reflect.ValueOf("s3")}
+	// wantCoherent is the expected logical result: true means coherent (nil error).
+	// IsCoherent compares with yes. Since s1 is coherent with yes, Not(s1) is not.
+	tests := []struct {
+		name         string
+		n            Node
+		wantCoherent bool
+	}{
+		{"not true", &Not{yes}, false},
+		{"not false", &Not{no}, true},
+		{"not not true", &Not{&Not{yes}}, true},
+		{"not not false", &Not{&Not{no}}, false},
+		{"not not not true", &Not{&Not{&Not{yes}}}, false},
+		{"not not not false", &Not{&Not{&Not{no}}}, true},
+		{"not not not not true", &Not{&Not{&Not{&Not{yes}}}}, true},
+		{"not not not not false", &Not{&Not{&Not{&Not{no}}}}, false},
+		{"not s1", &Not{s1}, false},
+		{"not not s1", &Not{&Not{s1}}, true},
+		{"not not not s1", &Not{&Not{&Not{s1}}}, false},
+		{"not (true or true)", &Not{&OR{&NArray{[]Node{yes, yes}}}}, false},
+		{"not (true or false)", &Not{&OR{&NArray{[]Node{yes, no}}}}, false},
+		{"not (false or true)", &Not{&OR{&NArray{[]Node{no, yes}}}}, false},
+		{"not (false or false)", &Not{&OR{&NArray{[]Node{no, no}}}}, true},
+		{"not (true and true)", &Not{&Coherent{&NArray{[]Node{yes, yes}}}}, false},
+		{"not (true and false)", &Not{&Coherent{&NArray{[]Node{yes, no}}}}, true},
+		{"not (false and true)", &Not{&Coherent{&NArray{[]Node{no, yes}}}}, true},
+		{"not (false and false)", &Not{&Coherent{&NArray{[]Node{no, no}}}}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.n.IsCoherent()
+			if (err == nil) != tt.wantCoherent {
+				t.Errorf("IsCoherent() error = %v, wantCoherent = %v", err, tt.wantCoherent)
+			}
+		})
+	}
+
+	// Strict negation: coherent(Not(a), b) = !coherent(a, b).
+	// Invert the entire comparison, even when b is incoherent or an OR.
+	// Expectations are explicit; they are not computed using the implementation.
+	t.Run("with", func(t *testing.T) {
+		tests := []struct {
+			name         string
+			child        Node
+			other        Node
+			wantCoherent bool
+		}{
+			{"not true with true", yes, yes, false},
+			{"not true with false", yes, no, true},
+			{"not false with true", no, yes, true},
+			{"not false with false", no, no, true},
+			{"not not true with true", &Not{yes}, yes, true},
+			{"not not true with false", &Not{yes}, no, false},
+			{"not not false with true", &Not{no}, yes, false},
+			{"not not false with false", &Not{no}, no, false},
+			{"not s1 with s1", s1, s1, false},
+			{"not s1 with s2", s1, s2, true},
+			{"not s1 with yes", s1, yes, false},
+			{"not s1 with no", s1, no, true},
+			{"not not s1 with s1", &Not{s1}, s1, true},
+			{"not not s1 with s2", &Not{s1}, s2, false},
+			{"not not s1 with yes", &Not{s1}, yes, true},
+			{"not not s1 with no", &Not{s1}, no, false},
+			// NOT (match first OR match second): neither alternative may match.
+			{"not s1 with or first match", s1, &OR{&NArray{[]Node{s1, s2}}}, false},
+			{"not s1 with or second match", s1, &OR{&NArray{[]Node{s2, s1}}}, false},
+			{"not s1 with or both match", s1, &OR{&NArray{[]Node{s1, s1}}}, false},
+			{"not s1 with or neither match", s1, &OR{&NArray{[]Node{s2, s3}}}, true},
+			{"not s1 with or both false", s1, &OR{&NArray{[]Node{no, no}}}, true},
+			{"not not s1 with or one match", &Not{s1}, &OR{&NArray{[]Node{s1, s2}}}, true},
+			{"not not s1 with or neither match", &Not{s1}, &OR{&NArray{[]Node{s2, s3}}}, false},
+			// De Morgan also applies when the negated child is an OR.
+			{"not or with first match", &OR{&NArray{[]Node{s1, s2}}}, s1, false},
+			{"not or with second match", &OR{&NArray{[]Node{s2, s1}}}, s1, false},
+			{"not or with both match", &OR{&NArray{[]Node{s1, s1}}}, s1, false},
+			{"not or with neither match", &OR{&NArray{[]Node{s2, s3}}}, s1, true},
+			{"not or with false", &OR{&NArray{[]Node{s1, s2}}}, no, true},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				n := &Not{tt.child}
+				err := n.IsCoherentWith(tt.other)
+				if (err == nil) != tt.wantCoherent {
+					t.Errorf("IsCoherentWith() error = %v, wantCoherent = %v", err, tt.wantCoherent)
+				}
+			})
+		}
+	})
 }
 func TestIsNeutral(t *testing.T) {
 	tables := []struct {
