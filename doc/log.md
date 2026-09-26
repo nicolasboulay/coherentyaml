@@ -108,3 +108,6 @@
  Je n’ai pas pu relancer les contrôles : ni Go, ni Docker ne sont disponibles dans l’environnement courant. Comme seuls Dockerfile, TEST, go.mod et go.sum ont changé depuis l’analyse, aucun correctif fonctionnel ne peut cependant avoir résolu les anomalies du moteur ou de la CLI.
 
   L’ordre conseillé est donc : figer les cinq décisions fonctionnelles, réécrire les tests concernés, corriger le moteur, corriger la CLI, puis terminer versionnement, CI et documentation.
+
+# 20260926
+

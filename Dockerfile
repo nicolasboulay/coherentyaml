@@ -32,10 +32,10 @@ RUN apt-get update \
 RUN curl -fsSL https://chatgpt.com/codex/install.sh \
     | CODEX_NON_INTERACTIVE=1 CODEX_INSTALL_DIR=/usr/local/bin sh
 
-RUN python3 -m venv /opt/platformio \
-    && /opt/platformio/bin/pip install --no-cache-dir platformio \
-    && ln -s /opt/platformio/bin/platformio /usr/local/bin/platformio \
-    && ln -s /opt/platformio/bin/pio /usr/local/bin/pio
+#RUN python3 -m venv /opt/platformio \
+#    && /opt/platformio/bin/pip install --no-cache-dir platformio \
+#    && ln -s /opt/platformio/bin/platformio /usr/local/bin/platformio \
+#    && ln -s /opt/platformio/bin/pio /usr/local/bin/pio
 
 RUN mkdir -p "$CODEX_HOME/skills" \
     && git clone --depth 1 https://github.com/obra/superpowers.git "$CODEX_HOME/superpowers" \
