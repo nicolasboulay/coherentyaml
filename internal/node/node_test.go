@@ -111,6 +111,57 @@ func TestNotCoherent(t *testing.T) {
 	}
 }
 
+func TestCoherentGlobalConstraints(t *testing.T) {
+	a, b, c := MakeString("a"), MakeString("b"), MakeString("c")
+	or := func(nodes ...Node) Node { return &OR{&NArray{nodes}} }
+	and := func(nodes ...Node) Node { return &Coherent{&NArray{nodes}} }
+	tests := []struct {
+		name         string
+		nodes        [3]Node
+		wantCoherent bool
+	}{
+		// Each pair has a witness, but the complete conjunction has none.
+		{"both alternatives excluded", [3]Node{or(a, b), &Not{a}, &Not{b}}, false},
+		// No Not involved: pairwise intersections are b, a, and c respectively.
+		{"three overlapping disjunctions", [3]Node{or(a, b), or(b, c), or(a, c)}, false},
+		// Positive controls: c remains a witness for the whole conjunction.
+		{"one alternative remains", [3]Node{or(a, b, c), &Not{a}, &Not{b}}, true},
+		{"common alternative", [3]Node{or(a, c), or(b, c), or(a, b, c)}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// All six orders must agree, including when constraints are grouped
+			// or supplied through IsCoherentWith instead of a flat AND.
+			for _, order := range []struct {
+				name    string
+				i, j, k int
+			}{{"012", 0, 1, 2}, {"021", 0, 2, 1}, {"102", 1, 0, 2}, {"120", 1, 2, 0}, {"201", 2, 0, 1}, {"210", 2, 1, 0}} {
+				t.Run(order.name, func(t *testing.T) {
+					x, y, z := tt.nodes[order.i], tt.nodes[order.j], tt.nodes[order.k]
+					checks := []struct {
+						name string
+						run  func() error
+					}{
+						{"pair", func() error { return x.IsCoherentWith(y) }},
+						{"flat", and(x, y, z).IsCoherent},
+						{"nested", and(and(x, y), z).IsCoherent},
+						{"with", func() error { return and(x, y).IsCoherentWith(z) }},
+						{"with reversed", func() error { return z.IsCoherentWith(and(x, y)) }},
+					}
+					for _, check := range checks {
+						t.Run(check.name, func(t *testing.T) {
+							want := tt.wantCoherent || check.name == "pair"
+							if err := check.run(); (err == nil) != want {
+								t.Errorf("error = %v, wantCoherent = %v", err, want)
+							}
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestNot(t *testing.T) {
 	s1 := &Leaf{reflect.ValueOf("s1")}
 	s2 := &Leaf{reflect.ValueOf("s2")}
