@@ -469,13 +469,13 @@ func prettyPrint(t *testing.T, i interface{}) string {
 }
 
 func yor(a node.Node, b node.Node) node.Node {
-	return &node.OR{&node.NArray{[]node.Node{a, b}}}
+	return &node.OR{Child: &node.NArray{Child: []node.Node{a, b}}}
 }
 func yand(a node.Node, b node.Node) node.Node {
-	return &node.Coherent{&node.NArray{[]node.Node{a, b}}}
+	return &node.Coherent{Child: &node.NArray{Child: []node.Node{a, b}}}
 }
 func ynot(a node.Node) node.Node {
-	return &node.Not{a}
+	return &node.Not{Child: a}
 	//	return &node.Not{&node.Not{a}}
 }
 
@@ -532,7 +532,7 @@ func identity(a node.Node) node.Node {
 }
 
 func notTrue(a node.Node) node.Node {
-	return ynot(&node.Leaf{reflect.ValueOf(1)})
+	return ynot(&node.Leaf{Value: reflect.ValueOf(1)})
 }
 
 // (A or ~A)
