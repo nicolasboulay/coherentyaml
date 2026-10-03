@@ -77,7 +77,7 @@ func TestShallMatch(t *testing.T) {
 	}{
 		{"a: 2", "a: 1"},
 		{"a: 2", "a: \n  Not: 3"},
-		{"{a: 2, b: 2}", "{a: 1, b: 2, c: 3}"},
+		{"{a: 2, b: 2, c:1}", "{a: 1, b: 2, c: 3}"},
 		{`
 - a: 2
   b: 3
@@ -123,7 +123,6 @@ a:
 		if nil != err {
 			t.Errorf("Want coherency %v : %s\n%#v\n%#v\n", i, err, node1, node2)
 			fmt.Printf(" %s\n %s\n %v\n %v\n", yml.s1, yml.s2, ast1.Interface(), ast2.Interface())
-
 		}
 	}
 }
@@ -135,6 +134,7 @@ func TestShallNotMatch(t *testing.T) {
 		{"a: 2", "a: 3"},
 		{"a: 2", "a: \"toto\""},
 		{"a: 2", "a: 2.0"},
+		{"{a: 2, b: 2}", "{a: 1, b: 2, c: 3}"}, // pas de création de clef
 		{"- 2", "- toto"},
 	}
 

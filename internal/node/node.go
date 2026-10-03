@@ -119,17 +119,9 @@ func (or *OR) IsCoherent() error {
 
 func (or *OR) IsCoherentWith(n Node) error {
 	debugPrintfStart("OR IsCoherentWith %v  &  %v\n", or, n)
-	children := or.GetChild()
-	var err error
-	for _, child := range children {
-		err = child.IsCoherentWith(n)
-		if err == nil {
-			debugPrintfEnd("OR IsCoherentWith %v  &  %v : true\n", or, n)
-			return nil
-		}
-	}
-	debugPrintfEnd("OR IsCoherentWith %v  &  %v : false\n", or, n)
-	return fmt.Errorf("OR is not coherent with : %v", err)
+	err := logicalCoherence(or, n)
+	debugPrintfEnd("OR IsCoherentWith %v  &  %v : %v\n", or, n, err)
+	return err
 }
 
 func (o *OR) String() string {
@@ -202,26 +194,9 @@ func (c *Coherent) IsCoherent() error {
 
 func (c *Coherent) IsCoherentWith(n Node) error {
 	debugPrintfStart("Coherent IsCoherentWith %v & %v :\n", c, n)
-	children := c.GetChild()
-	var err error
-	for _, child := range children {
-		err = child.IsCoherentWith(n)
-		if err != nil {
-			debugPrintfEnd("Coherent IsCoherentWith %v  %v : false\n", c, n)
-			return fmt.Errorf("%v is not coherent with %v : %v", c, n, err)
-		}
-		for _, child2 := range children {
-			if child != child2 {
-				err = child.IsCoherentWith(child2)
-				if err != nil {
-					debugPrintfEnd("Coherent IsCoherentWith %v  %v : false\n", c, n)
-					return fmt.Errorf("%v is not coherent with %v : %v", c, n, err)
-				}
-			}
-		}
-	}
-	debugPrintfEnd("Coherent IsCoherentWith %v  %v : true\n", c, n)
-	return nil
+	err := logicalCoherence(c, n)
+	debugPrintfEnd("Coherent IsCoherentWith %v  %v : %v\n", c, n, err)
+	return err
 }
 
 func (c *Coherent) String() string {
@@ -290,57 +265,9 @@ func (n *Not) IsCoherent() error {
 
 func (n *Not) IsCoherentWith(o Node) error {
 	debugPrintfStart("Not IsCoherentWith %v  &  %v:\n", n, o)
-	//	if n.child.IsOperator() { // proposal Not: Coherent:, Not: Or:
-	//		err1 := n.IsCoherent()
-	//		err2 := o.IsCoherent()
-	//		if (err1 == nil && err2 == nil) {
-	//			debugPrintfEnd("Not IsCoherentWith %v  %v: true (proposal)\n", n, o)
-	//			return nil
-	//		}
-	//	} else { // incomplete proposal is always true
-	//		err := n.child.IsCoherentWith(o)
-	//		if (err != nil) {
-	//			debugPrintfEnd("Not IsCoherentWith %v  %v : true (part) %v\n", n, o , err)
-	//			return nil
-	//		}
-	//	}
-	//	debugPrintfEnd("Not IsCoherentWith %v  %v: false\n", n, o)
-	//	return fmt.Errorf("Not, Both node should be different %v vs %v", n, o)
-
-	if !n.Child.IsOperator() { // incomplete proposal is always true
-		if !o.IsOperator() { // ex: ¬s1.s1
-			err := n.Child.IsCoherentWith(o)
-			if err != nil {
-				debugPrintfEnd("Not IsCoherentWith %v  &  %v : (part) true %v\n", n, o, err)
-				return nil
-			} else {
-				debugPrintfEnd("Not IsCoherentWith %v  &  %v : (part) false\n", n, o)
-				return fmt.Errorf("Not, %v is not coherent with %v\n", n, o)
-			}
-		} else { // ex: ¬s1.Yes
-			err := o.IsCoherent()
-			debugPrintfEnd("Not IsCoherentWith %v  &  %v : (part vs op) %v\n", n, o, err)
-			return err
-		}
-	}
-
-	b := o.IsCoherent()
-	if b == nil {
-		//o true
-		err := n.Child.IsCoherentWith(o)
-		if err != nil {
-			//a false
-			debugPrintfEnd("Not IsCoherentWith %v  &  %v : true %v\n", n, o, err)
-			return nil
-		} else {
-			//a true
-			debugPrintfEnd("Not IsCoherentWith %v  &  %v : false %v\n", n, o, err)
-			return fmt.Errorf("Not, %v is not coherent with %v\n", n, o)
-		}
-	}
-	// o false
-	debugPrintfEnd("Not IsCoherentWith %v  &  %v : false\n", n, o)
-	return fmt.Errorf("Not, %v is false : %v", o, b)
+	err := logicalCoherence(n, o)
+	debugPrintfEnd("Not IsCoherentWith %v  &  %v : %v\n", n, o, err)
+	return err
 }
 
 func (n *Not) String() string {
@@ -457,7 +384,7 @@ func (l *Leaf) isNeutral() bool {
 			return false
 		}
 	}
-	return false
+	// return false
 }
 
 func (l *Leaf) String() string {
@@ -558,7 +485,7 @@ func (n *NStruct) IsCoherentWith(n2 Node) error {
 	if !ok {
 		//return fmt.Errorf("Structure needed, %v vs %v\n", n, n2)
 		if n2.IsOperator() {
-			ret := n2.IsCoherent()
+			ret := logicalCoherence(n, n2)
 			debugPrintfEnd("Struct IsCoherentWith %v  %v : %v\n", n, n2, ret)
 			return ret
 		} else {
