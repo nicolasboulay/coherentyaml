@@ -1,7 +1,13 @@
 FROM golang:1.27.0-bookworm
 
 ENV CODEX_HOME=/codex-home \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    PATH="/usr/local/go/bin:/go/bin:${PATH}"
+
+# Login shells reset PATH in /etc/profile; restore the Go directories afterwards.
+RUN printf '%s\n' \
+    'export PATH="/usr/local/go/bin:/go/bin:$PATH"' \
+    > /etc/profile.d/go-path.sh
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
