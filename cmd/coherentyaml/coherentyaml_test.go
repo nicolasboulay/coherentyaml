@@ -415,7 +415,7 @@ func TestCalculDeProposition(t *testing.T) {
 					t.Errorf("Want coherency in %s %v %v : %s", relationString[i], nodeA, nodeB, err)
 				}
 			}
-			break
+
 			for _, C := range possible_set {
 
 				ast.Read([]byte(C))
